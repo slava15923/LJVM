@@ -709,3 +709,8 @@ jvm_error_t jvm_invokeVS_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classli
 exit:
     return err;
 }
+
+jvm_error_t jvm_athrow_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    objectmanager_object_t* object = *(void**)frame->stack.stack[--frame->stack.sp].value;
+    return jvm_throw(frame,object);
+}

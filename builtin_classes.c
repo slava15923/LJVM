@@ -12,6 +12,7 @@
 static jvm_error_t string_clinit(jvm_frame_t* frame);
 static jvm_error_t object_clinit(jvm_frame_t* frame);
 static jvm_error_t system_clinit(jvm_frame_t* frame);
+static jvm_error_t ioexception_clinit(jvm_frame_t* frame);
 static jvm_error_t printstream_clinit(jvm_frame_t* frame);
 static jvm_error_t outputstream_clinit(jvm_frame_t* frame);
 
@@ -19,6 +20,8 @@ static jvm_error_t string_native_utf8_init(jvm_frame_t* frame);
 static jvm_error_t outputstream_init(jvm_frame_t* frame);
 static jvm_error_t outputstream_wfd_init(jvm_frame_t* frame);
 static jvm_error_t printstream_init(jvm_frame_t* frame);
+
+static jvm_error_t ioexception_init(jvm_frame_t* frame);
 
 static jvm_error_t outputstream_close(jvm_frame_t* frame);
 static jvm_error_t outputstream_flush(jvm_frame_t* frame);
@@ -73,11 +76,27 @@ classlinker_class_t java_lang_String = {
     .generation = 1,
 };
 
+classlinker_normalclass_t java_io_IOException_info = {
+    .methods_count = 2,
+    .methods = (classlinker_method_t[]){
+        {
+            .name = "<clinit>",
+            .raw_description = "()V",
+            .flags = ACC_STATIC,
+            .fn = ioexception_clinit,
+        },
+        {
+            .name = "<init>",
+            .raw_description = "()V",
+            .fn = ioexception_init,
+        },
+    }
+};
 classlinker_class_t java_io_IOException = {
     .this_name = "java/io/IOException",
     .parent = &java_lang_Object,
     .generation = 1,
-    .info = &(classlinker_normalclass_t){}
+    .info = &java_io_IOException_info,
 };
 
 classlinker_normalclass_t java_io_OutputStream_info = {
@@ -223,6 +242,12 @@ void builtin_classes_init(classlinker_instance_t* linker){
     }
 }
 
+static jvm_error_t ioexception_clinit(jvm_frame_t* frame){
+    return JVM_OK;
+}
+static jvm_error_t ioexception_init(jvm_frame_t* frame){
+    return JVM_OK;
+}
 
 
 static jvm_error_t string_clinit(jvm_frame_t* frame){

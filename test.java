@@ -13,8 +13,14 @@ class test_app{
 		}
 		return a;
 	}
+
+	public static void expection_test() throws IOException{
+		throw new IOException();
+	}
+
 	public static void main(String[] args){
 		field = test(512);
+		byte ln = 10;
 		s = "Fuck";
 
 		byte bytes[] = new byte[32];
@@ -22,13 +28,28 @@ class test_app{
 		for(byte i = 0; i < 31; i++){
 				bytes[i] = j;
 		}
+		bytes[31] = ln;
 
 		try {
 			System.out.write(bytes);
 		} catch (IOException e){
-
+			debug_segfault(null);
 		}
 
+		try {
+			expection_test();
+		} catch(IOException e){
+			byte nj = 70;
+			byte[] new_bytes = new byte[16];
+			for(byte i = 0; i < 16; i++){
+				new_bytes[i] = nj;
+			}
+			new_bytes[15] = ln;
+
+			try{
+				System.out.write(new_bytes);
+			}catch(IOException ne){}
+		}
 
 		debug_segfault(args);
 	}

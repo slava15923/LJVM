@@ -29,8 +29,7 @@ void jvm_thread_unlock();
 jvm_error_t jvm_bytecode_executor(jvm_frame_t* frame);
 
 jvm_error_t jvm_invoke(jvm_instance_t* instance, jvm_frame_t* previous_frame, classlinker_method_t* callable_method, unsigned nargs, jvm_value_t args[]);
-
 jvm_error_t jvm_invokestatic(jvm_instance_t* instance, jvm_frame_t* previous_frame, classlinker_method_t* callable_method, unsigned nargs, jvm_value_t args[]);
-
+jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* expection_object);
                             
 

@@ -4,6 +4,7 @@
 #include "class_loader.h"
 #include "jvm_internal.h"
 #include "jvm.h"
+#include "jvm_method.h"
 #include "lb_endian.h"
 #include "list.h"
 #include "object.h"
@@ -111,6 +112,8 @@ static jvm_opcode_executor_t opcode_executors[211] = {
     [OP_I2F] = {0,NULL,jvm_i2ANY_opcodes},
     [OP_I2L] = {0,NULL,jvm_i2ANY_opcodes},
     [OP_I2S] = {0,NULL,jvm_i2ANY_opcodes},
+
+    [OP_ATHROW] = {0,NULL,jvm_athrow_opcode},
 
     [OP_INVOKESTATIC] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_invokestatic_opcode},
     [OP_INVOKESPECIAL] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_invokeVS_opcode},
@@ -244,6 +247,8 @@ jvm_error_t jvm_invoke(jvm_instance_t* instance, jvm_frame_t* previous_frame, cl
         jvm_current_thread->topmost_frame = &frame;
     }
 
+    FAIL_SET_JUMP(nargs <= frame.method->frame_descriptor.locals_count || nargs == 0,err,JVM_OPCODE_INVALID,exit);
+
     for(unsigned i = 0; i < nargs; i++){
         frame.locals[i] = args[i];
     }
@@ -256,6 +261,42 @@ jvm_error_t jvm_invoke(jvm_instance_t* instance, jvm_frame_t* previous_frame, cl
 
     if(jvm_current_thread){
         jvm_current_thread->topmost_frame = previous_frame;
+    }
+
+exit:
+    jvm_thread_unlock();
+    return err;
+}
+
+jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_object){
+    jvm_error_t err = JVM_UNKNOWN;
+
+    jvm_thread_lock();
+
+    classlinker_method_t* exception_handler = NULL;
+    objectmanager_class_object_t* exception_cobject = objectmanager_get_class_object_info(exception_object);
+
+    FAIL_SET_JUMP(exception_cobject,err,JVM_OPCODE_INVALID,exit);
+    err = JVM_METHOD_RETURN;
+
+    for(jvm_frame_t* cur = frame; cur; cur = cur->previous_frame){
+        classlinker_method_t* cur_method = cur->method;
+        if((cur_method->flags & ACC_NATIVE) != ACC_NATIVE && cur_method->not_builtin == true){
+            classlinker_bytecode_t* bytecode = cur_method->userctx;
+            for(unsigned i = 0; i < bytecode->expectiontable_size; i++){
+                classlinker_expectiontable_t* exception = &bytecode->expection_table[i];
+
+                if(exception->start_pc <= cur->pc && exception->end_pc >= cur->pc){
+                    cur->pc = exception->handler_pc - 1;
+
+                    uint16_t sp = cur->stack.sp++;
+                    cur->stack.stack[sp].type = EJVT_REFERENCE;
+                    *(void**)cur->stack.stack[sp].value = exception_object;
+
+                    goto exit;
+                }
+            }
+        }
     }
 
 exit:

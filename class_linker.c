@@ -86,7 +86,8 @@ classlinker_attributetype_t attribute_gettype(char* attribute_name){
 
 
 
-classlinker_bytecode_t* parse_code(char* attr_data,classlinker_instance_t* linker,classlinker_class_t* class){
+classlinker_bytecode_t* parse_code(char* attr_data,classlinker_instance_t* linker,classlinker_method_t* method){
+    void* fail_set_jump_dummy; //Dummy variable for FAIL_SET_JUMP
     classlinker_bytecode_t* code = arena_calloc(linker->arena,1,sizeof(*code));
     if(code){
         code->stack_size = be16_to_cpu(*(uint16_t*)attr_data); attr_data += sizeof(uint16_t);
@@ -108,14 +109,16 @@ classlinker_bytecode_t* parse_code(char* attr_data,classlinker_instance_t* linke
                 code->expection_table[i].handler_pc = be16_to_cpu(*(uint16_t*)attr_data); attr_data += sizeof(uint16_t);
 
                 uint16_t catch_index = be16_to_cpu(*(uint16_t*)attr_data); attr_data += sizeof(uint16_t);
-                classlinker_normalclass_t* class_info = class->info;
+                classlinker_normalclass_t* class_info = method->class->info;
 
                 if(catch_index > 0){
                     code->expection_table[i].expection_class = class_info->constant_pool.constants[catch_index - 1].constant_value;
                 } else code->expection_table[i].expection_class = NULL;
             }
         }
+
     }
+
     return code;
 }
 
@@ -596,6 +599,8 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
 
                 new_method->name = arena_strdup(linker->arena,name);
                 new_method->raw_description = arena_strdup(linker->arena, description);
+                new_method->not_builtin = true;
+
                 parse_description(&new_method->description,description, linker);
 
                 FAIL_SET_JUMP(new_method->name, err, CLASSLINKER_OOM,exit);
@@ -613,7 +618,7 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
                             FAIL_SET_JUMP(!((new_method->flags & ACC_NATIVE) == ACC_NATIVE),err,CLASSLINKER_INVALID_CLASS,exit);
                             FAIL_SET_JUMP(!((new_method->flags & ACC_ABSTRACT) == ACC_ABSTRACT),err,CLASSLINKER_INVALID_CLASS,exit);
 
-                            new_method->userctx = parse_code(raw_method->attributes[attr].classloader_attribute,linker,linkable_class);
+                            new_method->userctx = parse_code(raw_method->attributes[attr].classloader_attribute,linker,new_method);
                             FAIL_SET_JUMP(new_method->userctx,err,CLASSLINKER_INVALID_CLASS,exit);
 
                             new_method->fn = jvm_bytecode_executor;
@@ -637,6 +642,7 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
                     FAIL_SET_JUMP(found_method->fn,err,CLASSLINKER_NOTFOUND,exit);                
 
                     *new_method = *found_method;
+                    new_method->class = linkable_class;
                 }
 
                 if(new_method->frame_descriptor.locals_count == 0){
@@ -646,7 +652,6 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
                             new_method->frame_descriptor.locals_count++;
                     }
                 }      
-                new_method->class = linkable_class;
 
             }
         } else if(linkable_class->type == EClass && linkable_class->raw_class == NULL){ //Allow builtin classes to use native (maybe to load jnis from library?)

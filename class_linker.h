@@ -92,8 +92,9 @@ typedef struct{
 }classlinker_frame_descriptor_t;
 
 #include "jvm_method.h"
-typedef struct{
+typedef struct classlinker_method_t{
     classlinker_class_t* class;
+    bool not_builtin;
 
     class_access_flags_t flags;
     char* name;

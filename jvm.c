@@ -337,7 +337,7 @@ jvm_error_t jvm_launch_class(jvm_instance_t* instance, char* class, int nargs, c
         objectmanager_object_t* string_arg = objectmanager_new_class_object(&frame,classlinker_find_class(instance->linker,"java/lang/String"));
         FAIL_SET_JUMP(string_arg,err,JVM_OOM,exit);
 
-        classlinker_method_t* init = objectmanager_object_get_method(&frame,string_arg,"<init>", "(*)V");
+        classlinker_method_t* init = objectmanager_class_object_get_method(&frame,objectmanager_get_class_object_info(string_arg),"<init>", "(*)V");
         FAIL_SET_JUMP(init,err,JVM_NOTFOUND,exit);
 
         jvm_value_t init_args[] = {{EJVT_REFERENCE},{EJVT_REFERENCE}};

@@ -11,16 +11,6 @@ typedef enum{
 }objectmanager_object_type_t;
 
 typedef struct{
-    classlinker_class_t* class;
-    classlinker_field_t** fields; //2D field array, addressed via class generation
-}objectmanager_class_object_t;
-
-typedef struct{
-    size_t count;
-    jvm_value_t* elements;
-}objectmanager_array_object_t;
-
-typedef struct{
     struct list_head list;
 
     jvm_instance_t* jvm;
@@ -29,6 +19,18 @@ typedef struct{
     objectmanager_object_type_t type;
     void* data;
 }objectmanager_object_t;
+
+typedef struct{
+    classlinker_class_t* class;
+    classlinker_field_t** fields; //2D field array, addressed via class generation
+}objectmanager_class_object_t;
+
+typedef struct{
+    objectmanager_object_t* JLObject; //java/lang/Object
+
+    size_t count;
+    jvm_value_t* elements;
+}objectmanager_array_object_t;
 
 jvm_error_t objectmanager_init_heap(jvm_frame_t* frame, uint32_t heap_size);
 
@@ -40,7 +42,7 @@ objectmanager_object_t* objectmanager_new_array_object(jvm_frame_t* frame, jvm_v
 
 bool objectmanager_class_object_is_compatible_to(objectmanager_class_object_t* class_object, classlinker_class_t* class);
 
-classlinker_method_t* objectmanager_object_get_method(jvm_frame_t* frame, objectmanager_object_t* object,
+classlinker_method_t* objectmanager_class_object_get_method(jvm_frame_t* frame, objectmanager_class_object_t* object,
                                                             char* name, char* description);
 
 classlinker_field_t* objectmanager_class_object_get_field(jvm_frame_t* frame, objectmanager_class_object_t* class_object,

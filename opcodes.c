@@ -61,7 +61,7 @@ jvm_error_t jvm_ldc_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_
                 objectmanager_object_t* string = objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker,"java/lang/String"));
                 FAIL_SET_JUMP(string,err,JVM_OOM,exit);
 
-                classlinker_method_t* init_method = objectmanager_object_get_method(frame,string,"<init>","(*)V");
+                classlinker_method_t* init_method = objectmanager_class_object_get_method(frame,objectmanager_get_class_object_info(string),"<init>","(*)V");
                 FAIL_SET_JUMP(init_method,err,JVM_NOTFOUND,exit);
 
                 jvm_value_t args[2] = {{EJVT_REFERENCE},{EJVT_NATIVEPTR}};
@@ -702,7 +702,8 @@ jvm_error_t jvm_invokevirtual_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, cl
 
     FAIL_SET_JUMP(objectmanager_class_object_is_compatible_to(class_object,method_ref->class),err,JVM_OPPARAM_INVALID,exit);
 
-    classlinker_method_t* lookedup_method = objectmanager_object_get_method(frame,object_itself, method_ref->nameandtype.name, method_ref->nameandtype.descriptor);
+    classlinker_method_t* lookedup_method = objectmanager_class_object_get_method(frame,objectmanager_get_class_object_info(object_itself),
+                                             method_ref->nameandtype.name, method_ref->nameandtype.descriptor);
     FAIL_SET_JUMP(lookedup_method,err,JVM_NOTFOUND,exit);
 
     FAIL_SET_JUMP(strcmp(lookedup_method->name,"<init>") != 0 && strcmp(lookedup_method->name,"<clinit>") != 0, err,JVM_OPPARAM_INVALID,exit);

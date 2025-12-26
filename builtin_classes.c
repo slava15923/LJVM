@@ -419,8 +419,8 @@ static jvm_error_t system_clinit(jvm_frame_t* frame){
     *(void**)field_out->value.value = out_stream;
     *(void**)field_err->value.value = out_stream;
 
-    classlinker_method_t* console_init = objectmanager_object_get_method(frame,console_stream,"<init>", "(I)V");
-    classlinker_method_t* outerr_init = objectmanager_object_get_method(frame,out_stream,"<init>", "(Ljava/io/OutputStream;)V");
+    classlinker_method_t* console_init = objectmanager_class_object_get_method(frame,objectmanager_get_class_object_info(console_stream),"<init>", "(I)V");
+    classlinker_method_t* outerr_init = objectmanager_class_object_get_method(frame,objectmanager_get_class_object_info(out_stream),"<init>", "(Ljava/io/OutputStream;)V");
  
     FAIL_SET_JUMP(console_init,err,JVM_NOTFOUND,exit);
     FAIL_SET_JUMP(outerr_init,err,JVM_NOTFOUND,exit);
@@ -562,7 +562,7 @@ static jvm_error_t printstream_common(jvm_frame_t* frame, objectmanager_object_t
     objectmanager_object_t* output_stream_object = *(void**)output_stream->value.value;
     FAIL_SET_JUMP(output_stream,err,JVM_UNKNOWN,exit);
 
-    classlinker_method_t* write_method = objectmanager_object_get_method(frame,output_stream_object,"write", "([B)V");
+    classlinker_method_t* write_method = objectmanager_class_object_get_method(frame,objectmanager_get_class_object_info(output_stream_object),"write", "([B)V");
     FAIL_SET_JUMP(write_method,err,JVM_NOTFOUND,exit);
 
     jvm_value_t args[2] = {{EJVT_REFERENCE},{EJVT_REFERENCE}};

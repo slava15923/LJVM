@@ -57,6 +57,10 @@ objectmanager_object_t* objectmanager_new_array_object(jvm_frame_t* frame, jvm_v
     new->data = calloc(1,sizeof(objectmanager_array_object_t));
 
     objectmanager_array_object_t* array_object = new->data;
+    objectmanager_object_t* JLObject = objectmanager_new_class_object(frame, classlinker_find_class(frame->jvm->linker,"java/lang/Object"));
+    assert(JLObject);
+
+    array_object->JLObject = JLObject;
     array_object->count = size;
     array_object->elements = calloc(size,sizeof(*array_object->elements));
 
@@ -70,19 +74,18 @@ objectmanager_object_t* objectmanager_new_array_object(jvm_frame_t* frame, jvm_v
 }
 
 objectmanager_class_object_t* objectmanager_get_class_object_info(objectmanager_object_t* object){
-    objectmanager_class_object_t* ret = NULL;
     if(object->type == EJOMOT_CLASS){
-        ret = object->data;
+        return object->data;
     }
-    return ret;
+    return ((objectmanager_array_object_t*)object->data)->JLObject->data;
+    
 }
 
 objectmanager_array_object_t* objectmanager_get_array_object_info(objectmanager_object_t* object){
-    objectmanager_array_object_t* ret = NULL;
     if(object->type == EJOMOT_ARRAY){
-        ret = object->data;
+        return object->data;
     }
-    return ret;
+    return NULL;
 }
 
 classlinker_field_t* objectmanager_class_object_get_field(jvm_frame_t* frame, objectmanager_class_object_t* class_object,
@@ -104,12 +107,10 @@ classlinker_field_t* objectmanager_class_object_get_field(jvm_frame_t* frame, ob
     return NULL;
 }
 
-classlinker_method_t* objectmanager_object_get_method(jvm_frame_t* frame, objectmanager_object_t* object,
+classlinker_method_t* objectmanager_class_object_get_method(jvm_frame_t* frame, objectmanager_class_object_t* object,
                                                             char* name, char* description){
 
-    classlinker_class_t* where_to_look = object->type == EJOMOT_CLASS ? ((objectmanager_class_object_t*)object->data)->class : classlinker_find_class(object->jvm->linker,"java/lang/Object");
-    
-    return classlinker_find_method(frame, where_to_look,name,description);
+    return classlinker_find_method(frame, object->class,name,description);
 }
 
 bool objectmanager_class_object_is_compatible_to(objectmanager_class_object_t* class_object, classlinker_class_t* class){

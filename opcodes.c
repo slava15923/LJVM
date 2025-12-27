@@ -790,3 +790,33 @@ jvm_error_t jvm_athrow_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlink
     objectmanager_object_t* object = *(void**)frame->stack.stack[--frame->stack.sp].value;
     return jvm_throw(frame,object);
 }
+
+jvm_error_t jvm_anewarray_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    uint8_t jvm_array_type = *(uint8_t*)args[0];
+
+    jvm_value_t count = frame->stack.stack[--frame->stack.sp];
+
+    FAIL_SET_JUMP(*(int32_t*)count.value >= 0, err, JVM_OPCODE_INVALID,exit);
+
+    jvm_value_t array = {EJVT_REFERENCE};
+
+    objectmanager_object_t* object = objectmanager_new_array_object(frame,EJVT_REFERENCE, *(int32_t*)count.value);
+    FAIL_SET_JUMP(object,err,JVM_OOM,exit);
+
+    *(void**)array.value = object;
+
+    frame->stack.stack[frame->stack.sp++] = array;
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_aconstnull(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    uint16_t sp = frame->stack.sp++;
+    frame->stack.stack[sp].type = EJVT_REFERENCE;
+    *(void**)frame->stack.stack[sp].value = NULL;
+
+    return JVM_OK;
+}

@@ -15,6 +15,7 @@ static jvm_error_t object_clinit(jvm_frame_t* frame);
 static jvm_error_t system_clinit(jvm_frame_t* frame);
 static jvm_error_t ioexception_clinit(jvm_frame_t* frame);
 static jvm_error_t printstream_clinit(jvm_frame_t* frame);
+static jvm_error_t clonable_clinit(jvm_frame_t* frame);
 static jvm_error_t outputstream_clinit(jvm_frame_t* frame);
 
 static jvm_error_t string_native_utf8_init(jvm_frame_t* frame);
@@ -28,6 +29,7 @@ static jvm_error_t ioexception_init(jvm_frame_t* frame);
 static jvm_error_t outputstream_close(jvm_frame_t* frame);
 static jvm_error_t outputstream_flush(jvm_frame_t* frame);
 static jvm_error_t outputstream_writebytes(jvm_frame_t* frame);
+static jvm_error_t object_clone(jvm_frame_t* frame);
 
 static jvm_error_t printstream_printbool(jvm_frame_t* frame);
 static jvm_error_t printstream_printchar(jvm_frame_t* frame);
@@ -40,27 +42,57 @@ static jvm_error_t printstream_printobject(jvm_frame_t* frame);
 static jvm_error_t printstream_printstring(jvm_frame_t* frame);
 static jvm_error_t printstream_println(jvm_frame_t* frame);
 static jvm_error_t printstream_printlnvoid(jvm_frame_t* frame);
+static jvm_error_t printstream_printlnobject(jvm_frame_t* frame);
 
 classlinker_normalclass_t java_lang_Object_info = {
-    .methods_count = 2,
+    .methods_count = 3,
     .methods = (classlinker_method_t[]){
         {
             .name = "<clinit>",
             .raw_description = "()V",
             .fn = object_clinit,
-            .flags = ACC_STATIC,
+            .flags = ACC_STATIC | ACC_NATIVE,
         },
         {
             .name = "<init>",
             .raw_description = "()V",
             .fn = object_init,
+            .flags = ACC_NATIVE,
         },
+        {
+            .name = "clone",
+            .raw_description = "(Ljava/lang/Object;)V",
+            .frame_descriptor.arguments_count = 1,
+            .fn = object_clone,
+            .flags = ACC_NATIVE,
+        }
     },
 };
 
+extern classlinker_class_t java_lang_Clonable;
 classlinker_class_t java_lang_Object = {
     .this_name = "java/lang/Object",
     .info = &java_lang_Object_info,
+    .implements_count = 1,
+    .implements = (classlinker_class_t*[]){&java_lang_Clonable},
+};
+
+classlinker_normalclass_t java_lang_Clonable_info = {
+    .methods_count = 1,
+    .methods = (classlinker_method_t[]){
+        {
+            .name = "<clinit>",
+            .raw_description = "()V",
+            .flags = ACC_NATIVE | ACC_STATIC,
+            .fn = clonable_clinit,
+        },
+    },
+};
+classlinker_class_t java_lang_Clonable = {
+    .this_name = "java/lang/Cloneable",
+    .generation = 1,
+    .parent = &java_lang_Object,
+    .info = &java_lang_Clonable,
 };
 
 classlinker_normalclass_t java_lang_String_info = {
@@ -70,13 +102,14 @@ classlinker_normalclass_t java_lang_String_info = {
             .name = "<clinit>",
             .raw_description = "()V",
             .fn = string_clinit,
-            .flags = ACC_STATIC,
+            .flags = ACC_STATIC | ACC_NATIVE,
         },
         {
             .name = "<init>",
             .raw_description = "(*)V",
             .fn = string_native_utf8_init,
             .frame_descriptor.arguments_count = 1,
+            .flags = ACC_NATIVE,
         }
     },
     .fields_count = 1,
@@ -101,12 +134,13 @@ classlinker_normalclass_t java_io_IOException_info = {
             .name = "<clinit>",
             .raw_description = "()V",
             .fn = ioexception_clinit,
-            .flags = ACC_STATIC,
+            .flags = ACC_STATIC | ACC_NATIVE,
         },
         {
             .name = "<init>",
             .raw_description = "()V",
             .fn = ioexception_init,
+            .flags = ACC_NATIVE,
         },
     }
 };
@@ -124,35 +158,39 @@ classlinker_normalclass_t java_io_OutputStream_info = {
             .name = "<clinit>",
             .raw_description = "()V",
             .fn = outputstream_clinit,
-            .flags = ACC_STATIC,
+            .flags = ACC_STATIC | ACC_NATIVE,
         },
         {
             .name = "<init>",
             .raw_description = "()V",
             .fn = outputstream_init,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "<init>",
             .raw_description = "(I)V", //Secret custom FD output init :)
-            .frame_descriptor.arguments_count = 2,
+            .frame_descriptor.arguments_count = 1,
             .fn = outputstream_wfd_init,
-            .flags = ACC_STATIC,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "close",
             .raw_description = "()V", //Secret custom FD function!
             .fn = outputstream_close,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "flush",
             .raw_description = "()V", //Secret custom FD function!
             .fn = outputstream_close,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "write",
             .raw_description = "([B)V", //Secret custom FD function!
             .frame_descriptor.arguments_count = 1,
             .fn = outputstream_writebytes,
+            .flags = ACC_NATIVE,
         },
     },
     .fields_count = 1,
@@ -183,7 +221,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
             .name = "<clinit>",
             .raw_description = "()V",
             .fn = printstream_clinit,
-            .flags = ACC_STATIC,
+            .flags = ACC_STATIC | ACC_NATIVE,
 
         },
         {
@@ -191,60 +229,70 @@ classlinker_normalclass_t java_io_PrintStream_info = {
             .raw_description = "(Ljava/io/OutputStream;)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_init,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "print",
             .raw_description = "(Z)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printbool,
+            .flags = ACC_NATIVE,
         },
             {
             .name = "print",
             .raw_description = "(C)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printchar,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "print",
             .raw_description = "([C)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printchararray,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "print",
             .raw_description = "(D)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printdouble,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "print",
             .raw_description = "(F)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printfloat,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "print",
             .raw_description = "(I)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printint,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "print",
             .raw_description = "(J)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printlong,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "print",
             .raw_description = "(Ljava/lang/Object;)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printobject,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "print",
             .raw_description = "(Ljava/lang/String;)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printstring,
+            .flags = ACC_NATIVE,
         },
 
 
@@ -253,60 +301,70 @@ classlinker_normalclass_t java_io_PrintStream_info = {
             .raw_description = "()V",
             .frame_descriptor.locals_count = 1,
             .fn = printstream_printlnvoid,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "println",
             .raw_description = "(Z)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
+            .flags = ACC_NATIVE,
         },
             {
             .name = "println",
             .raw_description = "(C)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "println",
             .raw_description = "([C)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "println",
             .raw_description = "(D)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "println",
             .raw_description = "(F)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "println",
             .raw_description = "(I)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "println",
             .raw_description = "(J)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "println",
             .raw_description = "(Ljava/lang/Object;)V",
             .frame_descriptor.arguments_count = 1,
-            .fn = printstream_println,
+            .fn = printstream_printlnobject,
+            .flags = ACC_NATIVE,
         },
         {
             .name = "println",
             .raw_description = "(Ljava/lang/String;)V",
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
+            .flags = ACC_NATIVE,
         },
     }
 };
@@ -337,7 +395,7 @@ classlinker_normalclass_t java_lang_System_info = {
             .name = "<clinit>",
             .raw_description = "()V",
             .fn = system_clinit,
-            .flags = ACC_STATIC,
+            .flags = ACC_STATIC | ACC_NATIVE,
 
         },
     }
@@ -350,11 +408,9 @@ classlinker_class_t java_lang_System = {
     .info = &java_lang_System_info,
 };
 
-
-
-
 classlinker_class_t* builtin_classes[] = {
     &java_lang_Object,
+    &java_lang_Clonable,
     &java_lang_String,
     &java_io_IOException,
     &java_io_OutputStream,
@@ -382,7 +438,9 @@ static jvm_error_t ioexception_init(jvm_frame_t* frame){
     return JVM_OK;
 }
 
-
+static jvm_error_t clonable_clinit(jvm_frame_t* frame){
+    return JVM_OK;
+}
 static jvm_error_t string_clinit(jvm_frame_t* frame){
     return JVM_OK;
 }
@@ -391,6 +449,16 @@ static jvm_error_t object_clinit(jvm_frame_t* frame){
     return JVM_OK;
 }
 static jvm_error_t object_init(jvm_frame_t* frame){
+    return JVM_OK;
+}
+static jvm_error_t object_clone(jvm_frame_t* frame){
+    objectmanager_object_t* self = *(void**)frame->locals[0].value;
+    objectmanager_object_t* argument = *(void**)frame->locals[1].value;
+
+    uint16_t return_sp = frame->previous_frame->stack.sp++;
+    frame->previous_frame->stack.stack[return_sp].type = EJVT_REFERENCE;
+    *(void**)frame->previous_frame->stack.stack[return_sp].value = objectmanager_object_clone(frame, argument);
+
     return JVM_OK;
 }
 
@@ -713,8 +781,12 @@ exit:
 }
 
 static jvm_error_t printstream_printobject(jvm_frame_t* frame){
-    TODO("print object!");
-    *(int*)1 = 0;
+    printf("%p",*(void**)frame->locals[1].value);
+    return JVM_OK;
+}
+static jvm_error_t printstream_printlnobject(jvm_frame_t* frame){
+    printf("%p\n",*(void**)frame->locals[1].value);
+    return JVM_OK;
 }
 
 static jvm_error_t printstream_printstring(jvm_frame_t* frame){
@@ -742,7 +814,6 @@ struct{
     {"(F)V",printstream_printfloat,},
     {"(I)V",printstream_printint},
     {"(J)V",printstream_printlong},
-    {"(Ljava/lang/Object;)V",printstream_printobject},
     {"(Ljava/lang/String;)V",printstream_printstring},
 };
 static jvm_error_t printstream_println(jvm_frame_t* frame){
@@ -762,7 +833,6 @@ static jvm_error_t printstream_println(jvm_frame_t* frame){
 
     *(uint32_t*)frame->locals[1].value = '\n';
     err = printstream_printchar(frame);
-
 exit:
     return err;
 }

@@ -105,6 +105,7 @@ static jvm_opcode_executor_t opcode_executors[211] = {
 
     [OP_NEW] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_new_opcode},
     [OP_NEWARRAY] = {1,(jvm_opcode_argtype_t[]){EJOT_U8},jvm_newarray_opcode},
+    [OP_ANEWARRAY] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_anewarray_opcode},
 
     [OP_DUP] = {0,NULL,jvm_dup_opcodes},
 
@@ -116,6 +117,8 @@ static jvm_opcode_executor_t opcode_executors[211] = {
     [OP_I2S] = {0,NULL,jvm_i2ANY_opcodes},
 
     [OP_ATHROW] = {0,NULL,jvm_athrow_opcode},
+
+    [OP_ACONSTNULL] = {0,NULL,jvm_aconstnull},
 
     [OP_INVOKESTATIC] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_invokestatic_opcode},
     [OP_INVOKESPECIAL] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_invokespecial_opcode},
@@ -242,14 +245,17 @@ jvm_error_t jvm_invoke(jvm_instance_t* instance, jvm_frame_t* previous_frame, cl
         .jvm = instance,
         .method = callable_method,
         .previous_frame = previous_frame,
+        .native_exceptions = LIST_HEAD_INIT(frame.native_exceptions),
         .locals = alloca(callable_method->frame_descriptor.locals_count * sizeof(*frame.locals)),
         .stack.stack = alloca(callable_method->frame_descriptor.stack_size * sizeof(*frame.stack.stack)),
     };
+
     if(jvm_current_thread){
         jvm_current_thread->topmost_frame = &frame;
     }
 
     FAIL_SET_JUMP(nargs <= frame.method->frame_descriptor.locals_count || nargs == 0,err,JVM_OPCODE_INVALID,exit);
+    FAIL_SET_JUMP(callable_method->fn,err,JVM_NOTFOUND,exit);
 
     for(unsigned i = 0; i < nargs; i++){
         frame.locals[i] = args[i];
@@ -270,6 +276,16 @@ exit:
     return err;
 }
 
+jvm_error_t jvm_invokestatic(jvm_instance_t* instance, jvm_frame_t* previous_frame, classlinker_method_t* callable_method, unsigned nargs, jvm_value_t args[]){
+    jvm_error_t err = JVM_OK;
+
+    FAIL_SET_JUMP((callable_method->flags & ACC_STATIC) == ACC_STATIC,err,JVM_OPCODE_INVALID,exit);
+    err = jvm_invoke(instance,previous_frame,callable_method,nargs,args);
+
+exit:
+    return err;
+}
+
 jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_object){
     jvm_error_t err = JVM_UNKNOWN;
 
@@ -282,7 +298,7 @@ jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_obje
 
     for(jvm_frame_t* cur = frame; cur; cur = cur->previous_frame){
         classlinker_method_t* cur_method = cur->method;
-        if((cur_method->flags & ACC_NATIVE) != ACC_NATIVE && cur_method->not_builtin == true){
+        if((cur_method->flags & ACC_NATIVE) != ACC_NATIVE){
             classlinker_bytecode_t* bytecode = cur_method->userctx;
             for(unsigned i = 0; i < bytecode->exceptiontable_size; i++){
                 classlinker_exceptiontable_t* exception = &bytecode->exception_table[i];
@@ -297,6 +313,15 @@ jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_obje
                     goto exit;
                 }
             }
+        } else if(cur != frame){ //Without this exception will not be able to make it through this frame
+            jvm_native_exception_t* native_exception = arena_alloc(frame->jvm->arena,sizeof(*native_exception));
+            FAIL_SET_JUMP(native_exception,err,JVM_OOM,exit);
+
+            INIT_LIST_HEAD(&native_exception->list);
+            native_exception->exception_object = exception_object;
+
+            list_add(&native_exception->list,&cur->native_exceptions);
+            goto exit;
         }
         err = JVM_METHOD_RETURN; //Set err to JVM_METHOD_RETURN if there is no handler for this expection in frame
     }
@@ -306,14 +331,18 @@ exit:
     return err;
 }
 
-jvm_error_t jvm_invokestatic(jvm_instance_t* instance, jvm_frame_t* previous_frame, classlinker_method_t* callable_method, unsigned nargs, jvm_value_t args[]){
-    jvm_error_t err = JVM_OK;
+objectmanager_object_t* jvm_native_catch_exception(jvm_frame_t* frame){ //Native only
+    jvm_native_exception_t* exception = NULL;
+    list_for_each_entry(exception,&frame->native_exceptions,list){
+        break;
+    }
+    if(exception){
+        list_del(&exception->list);
+        objectmanager_object_t* ret = exception->exception_object;
+        arena_free_block(exception);
 
-    FAIL_SET_JUMP((callable_method->flags & ACC_STATIC) == ACC_STATIC,err,JVM_OPCODE_INVALID,exit);
-    err = jvm_invoke(instance,previous_frame,callable_method,nargs,args);
-
-exit:
-    return err;
+        return ret;
+    } else return NULL;
 }
 
 jvm_error_t jvm_launch_class(jvm_instance_t* instance, char* class, int nargs, char** args){

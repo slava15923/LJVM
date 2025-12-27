@@ -1,6 +1,6 @@
 import java.io.IOException;
 
-class private_fieldC{
+class private_fieldC implements Cloneable{
 	public int second_field = 322;
 	private static int field = 52;
 	public static int getter(){
@@ -25,6 +25,10 @@ class test_app{
 			a = i + i * i;
 		}
 		return a;
+	}
+
+	public static void varargs(Object... args){
+
 	}
 
 	public static void expection_test() throws IOException{
@@ -56,7 +60,8 @@ class test_app{
 		System.out.println(private_fieldC.getter());
 
 		private_fieldC C = new private_fieldC();
-
 		System.out.println(C.second_field);
+
+		System.out.println(new Object());
 	}
 }

@@ -600,7 +600,6 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
 
                 new_method->name = arena_strdup(linker->arena,name);
                 new_method->raw_description = arena_strdup(linker->arena, description);
-                new_method->not_builtin = true;
 
                 parse_description(&new_method->description,description, linker);
 
@@ -658,17 +657,9 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
         } else if(linkable_class->type == EClass && linkable_class->raw_class == NULL){ //Allow builtin classes to use native (maybe to load jnis from library?)
             classlinker_normalclass_t* class_info = linkable_class->info;
             for(unsigned i = 0; i < class_info->methods_count; i++){
-                classlinker_method_t* new_method = &class_info->methods[i];
-
-                if((new_method->flags & ACC_NATIVE) == ACC_NATIVE){
-                    classlinker_method_t* found_method = find_jni_method(linker,linkable_class->this_name,new_method->name,new_method->raw_description,&new_method->userctx);
-                    FAIL_SET_JUMP(found_method,err,CLASSLINKER_NOTFOUND,exit);
-                    FAIL_SET_JUMP(found_method->fn,err,CLASSLINKER_NOTFOUND,exit);
-
-                    *new_method = *found_method;
-                }                
-
+                classlinker_method_t* new_method = &class_info->methods[i];        
                 new_method->class = linkable_class;
+
                 if(new_method->frame_descriptor.locals_count == 0){
                     new_method->frame_descriptor.locals_count = new_method->frame_descriptor.arguments_count; //This is for thoose who lazy to add locals count
                 }                
@@ -695,7 +686,6 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
                     linkable_class->implements[i] = class_info->constant_pool.constants[class_index].constant_value;
                     FAIL_SET_JUMP(linkable_class->implements[i],err,CLASSLINKER_UNKNOWN,exit);
 
-                    printf("'%s' implements '%s'\n",linkable_class->this_name,linkable_class->implements[i]->this_name);
                 }else printf("%s: class %s have interface pointing to 0\n",__PRETTY_FUNCTION__,linkable_class->this_name);
             }
         }

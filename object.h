@@ -10,7 +10,7 @@ typedef enum{
     EJOMOT_ARRAY,
 }objectmanager_object_type_t;
 
-typedef struct{
+typedef struct objectmanager_object_t{
     struct list_head list;
 
     jvm_instance_t* jvm;
@@ -47,6 +47,8 @@ classlinker_method_t* objectmanager_class_object_get_method(jvm_frame_t* frame, 
 
 classlinker_field_t* objectmanager_class_object_get_field(jvm_frame_t* frame, objectmanager_class_object_t* class_object,
                                                           char* name);
+
+objectmanager_object_t* objectmanager_object_clone(jvm_frame_t* frame, objectmanager_object_t* object);
 
 objectmanager_class_object_t* objectmanager_get_class_object_info(objectmanager_object_t* object);
 objectmanager_array_object_t* objectmanager_get_array_object_info(objectmanager_object_t* object);

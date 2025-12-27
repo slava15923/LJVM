@@ -29,11 +29,18 @@ typedef struct{
     jvm_value_t* stack;
 }jvm_stack_t;
 
+typedef struct objectmanager_object_t objectmanager_object_t;
+typedef struct{
+    struct list_head list;
+    objectmanager_object_t* exception_object;
+}jvm_native_exception_t;
+
 typedef struct jvm_instance_t jvm_instance_t;
 typedef struct jvm_frame_t jvm_frame_t;
 typedef struct jvm_frame_t{
     jvm_instance_t* jvm;
 
+    struct list_head native_exceptions; //Linked list for handling exception in native methods
     classlinker_method_t* method;
 
     int64_t pc; //Negative because of some for loop issues with gotos

@@ -1,7 +1,6 @@
 #pragma once 
 
 #include "class_linker.h"
-#include "jvm.h"
 #include "object.h"
 #include "opcodes.h"
 
@@ -31,5 +30,6 @@ jvm_error_t jvm_bytecode_executor(jvm_frame_t* frame);
 jvm_error_t jvm_invoke(jvm_instance_t* instance, jvm_frame_t* previous_frame, classlinker_method_t* callable_method, unsigned nargs, jvm_value_t args[]);
 jvm_error_t jvm_invokestatic(jvm_instance_t* instance, jvm_frame_t* previous_frame, classlinker_method_t* callable_method, unsigned nargs, jvm_value_t args[]);
 jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* expection_object);
+objectmanager_object_t* jvm_native_catch_exception(jvm_frame_t* frame);
                             
 

@@ -66,6 +66,7 @@ objectmanager_object_t* objectmanager_new_array_object(jvm_frame_t* frame, jvm_v
 
     for(unsigned i = 0; i < size; i++){
         array_object->elements[i].type = type;
+        memset(array_object->elements[i].value,0,sizeof(array_object->elements[i].value));
     }
 
     new->jvm = frame->jvm;
@@ -111,6 +112,41 @@ classlinker_method_t* objectmanager_class_object_get_method(jvm_frame_t* frame, 
                                                             char* name, char* description){
 
     return classlinker_find_method(frame, object->class,name,description);
+}
+
+objectmanager_object_t* objectmanager_object_clone(jvm_frame_t* frame, objectmanager_object_t* object){
+    objectmanager_object_t* new_object = NULL;
+    switch(object->type){
+        case EJOMOT_CLASS:{
+            objectmanager_class_object_t* old_class_object = object->data;
+            new_object = objectmanager_new_class_object(frame,old_class_object->class);
+            if(new_object == NULL){
+                TODO("OOM exception!");
+                assert(new_object);
+            }
+
+            objectmanager_class_object_t* new_class_object = new_object->data;
+            for(classlinker_class_t* cur = old_class_object->class; cur; cur = cur->parent){
+                classlinker_normalclass_t* class_info = cur->info;
+                memcpy(new_class_object->fields[cur->generation],old_class_object->fields[cur->generation],class_info->fields_count * sizeof(old_class_object->fields[0][0]));
+            }
+        }
+        break;
+
+        case EJOMOT_ARRAY:{
+            objectmanager_array_object_t* old_array_object = object->data;
+            new_object = objectmanager_new_array_object(frame,old_array_object->elements[0].type, old_array_object->count);
+            if(new_object == NULL){
+                TODO("OOM exception!");
+                assert(new_object);
+            }
+
+            objectmanager_array_object_t* new_array_object = new_object->data;
+            memcpy(new_array_object->elements,old_array_object->elements,sizeof(old_array_object->elements[0]) * old_array_object->count);
+        }
+        break;
+    }
+    return new_object;
 }
 
 bool objectmanager_class_object_is_compatible_to(objectmanager_class_object_t* class_object, classlinker_class_t* class){

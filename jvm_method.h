@@ -11,4 +11,5 @@ typedef enum{
     JVM_METHOD_RETURN,
     JVM_ARRAY_OUTOFBOUNDS,
 }jvm_error_t;
+
 typedef jvm_error_t (*jvm_method_t)(jvm_frame_t* frame);

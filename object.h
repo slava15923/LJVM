@@ -12,11 +12,9 @@ typedef enum{
 
 typedef struct objectmanager_object_t{
     struct list_head list;
-
-    jvm_instance_t* jvm;
-    pthread_mutex_t monitor;
-
     objectmanager_object_type_t type;
+    
+    size_t size;
     void* data;
 }objectmanager_object_t;
 
@@ -32,7 +30,9 @@ typedef struct{
     jvm_value_t* elements;
 }objectmanager_array_object_t;
 
-jvm_error_t objectmanager_init_heap(jvm_frame_t* frame, uint32_t heap_size);
+
+jvm_error_t objectmanager_init_heap(jvm_instance_t* jvm, uint32_t heap_size);
+void objectmanager_gc(jvm_instance_t* jvm); //Scans the whole jvm instance
 
 objectmanager_object_t* objectmanager_new_class_object(jvm_frame_t* frame,
                                                        classlinker_class_t* class);

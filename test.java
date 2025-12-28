@@ -6,7 +6,7 @@ class private_fieldC implements Cloneable{
 	public static int getter(){
 		return field;
 	}
-};
+}
 
 class test_app{
 	static int field = 0;
@@ -62,6 +62,9 @@ class test_app{
 		private_fieldC C = new private_fieldC();
 		System.out.println(C.second_field);
 
-		System.out.println(new Object());
+		while(true){
+			System.out.println(new Object());
+		}
+		
 	}
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "arena.h"
 #include "class_linker.h"
 #include "list.h"
 #include "os_support.h"
@@ -61,7 +62,8 @@ typedef struct{
 
 typedef struct{ //I hate C include system sometimes
     struct list_head object_list;
-    void* gc_heap;
+    Arena* heap_arena;
+    Arena* gc_heap;
     uint32_t gc_heapsize;
 }objectmanager_heap_t;
 

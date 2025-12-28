@@ -613,6 +613,9 @@ jvm_error_t jvm_new_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_
     objectmanager_object_t* object = objectmanager_new_class_object(frame,new_class);
     FAIL_SET_JUMP(object,err,JVM_OOM,exit);
 
+    objectmanager_class_object_t* cobject = object->data;
+    printf("requested class %s, got: %s\n",new_class->this_name,cobject->class->this_name);
+
     *(void**)new_value.value = object;
     frame->stack.stack[frame->stack.sp++] = new_value;
 exit:

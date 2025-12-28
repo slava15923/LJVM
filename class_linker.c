@@ -752,11 +752,14 @@ classlinker_field_t* classlinker_find_staticfield(jvm_frame_t* frame, classlinke
 }
 
 bool classlinker_is_classes_compatible(classlinker_class_t* class, classlinker_class_t* compatible_to){
+
     for(classlinker_class_t* cur = class; cur; cur = cur->parent){
         if(compatible_to == cur)
             return true;
 
         for(unsigned i = 0; i < cur->implements_count; i++){
+            if(cur->implements[i] == class) return true;
+            
             if(classlinker_is_classes_compatible(cur->implements[i], compatible_to))
                 return true;
         }

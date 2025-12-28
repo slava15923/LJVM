@@ -125,14 +125,7 @@ static jvm_opcode_executor_t opcode_executors[211] = {
     [OP_INVOKEVIRTUAL] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_invokevirtual_opcode},
 };
 
-uint32_t nextby(uint32_t value, uint32_t by){
-    if (value % by == 0) {
-        return value; // Already divisible by 16
-    }
-    return (value / by + 1) * by; // Calculate the next multiple of 16
-}
-
-#define JVM_EXECUTOR_RESERVED_MEMORY 64 * 1024
+#define JVM_EXECUTOR_RESERVED_MEMORY 512 * 1024
 
 void jvm_thread_lock(){ //GC will lock threads mutexes in order to stop them from further execution
     if(jvm_current_thread){
@@ -149,15 +142,14 @@ void jvm_thread_unlock(){
 jvm_instance_t* jvm_new(classlinker_instance_t* linker, uint32_t heap_size){
     TODO("GC based memory manager");
 
-    Arena* arena = arena_new_dynamic(sizeof(jvm_instance_t*) + heap_size + JVM_EXECUTOR_RESERVED_MEMORY);
+    Arena* arena = arena_new_dynamic(sizeof(jvm_instance_t*) + JVM_EXECUTOR_RESERVED_MEMORY);
     jvm_instance_t* instance = arena_alloc(arena,sizeof(*instance));
     assert(instance);
 
     instance->arena = arena;
     instance->linker = linker;
 
-    jvm_frame_t param_frame = {.jvm = instance};
-    assert(objectmanager_init_heap(&param_frame,heap_size) == JVM_OK);
+    assert(objectmanager_init_heap(instance,heap_size) == JVM_OK);
 
     classlinker_class_t* class = NULL;
     list_for_each_entry(class,&linker->loaded_classes,list){

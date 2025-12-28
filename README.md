@@ -1,4 +1,4 @@
 Very WIP.
 
 
-Even no GC, current memory manager is leaking malloc() stub
+Current goal: full jvm bytecode implementation -> MIDP library

@@ -541,6 +541,8 @@ static jvm_error_t outputstream_wfd_init(jvm_frame_t* frame){
     classlinker_field_t* field_fd = objectmanager_class_object_get_field(frame,objectmanager_get_class_object_info(self), "fd");
     FAIL_SET_JUMP(field_fd,err,JVM_NOTFOUND,exit);
 
+    printf("field %p\n",field_fd);
+
     field_fd->value.type = EJVT_INT;
     *(int32_t*)field_fd->value.value = fd; 
 
@@ -559,6 +561,8 @@ static jvm_error_t outputstream_close(jvm_frame_t* frame){
     FAIL_SET_JUMP(fd >= 0,err,JVM_UNKNOWN,exit);
 
     close(fd);
+
+    *(int32_t*)field_fd->value.value = 0;
 
 exit:
     return err;

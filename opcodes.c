@@ -448,7 +448,7 @@ exit:
     return err;
 }
 
-jvm_error_t jvm_i2ANY_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+jvm_error_t jvm_ANY2ANY_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
     switch(opcode){
         case OP_I2B:
             frame->stack.stack[frame->stack.sp].type = EJVT_INT;
@@ -464,9 +464,46 @@ jvm_error_t jvm_i2ANY_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlink
             break;
         case OP_I2F:
             frame->stack.stack[frame->stack.sp].type = EJVT_FLOAT;
+            *(float*)frame->stack.stack[frame->stack.sp].value = *(int32_t*)frame->stack.stack[frame->stack.sp].value; 
             break;
         case OP_I2D:
             frame->stack.stack[frame->stack.sp].type = EJVT_DOUBLE;
+            *(double*)frame->stack.stack[frame->stack.sp].value = *(int32_t*)frame->stack.stack[frame->stack.sp].value; 
+            break;
+        case OP_L2D:
+            frame->stack.stack[frame->stack.sp].type = EJVT_DOUBLE;
+            *(double*)frame->stack.stack[frame->stack.sp].value = *(int64_t*)frame->stack.stack[frame->stack.sp].value; 
+            break;
+        case OP_L2F:
+            frame->stack.stack[frame->stack.sp].type = EJVT_FLOAT;
+            *(float*)frame->stack.stack[frame->stack.sp].value = *(int64_t*)frame->stack.stack[frame->stack.sp].value; 
+            break;
+        case OP_L2I:
+            frame->stack.stack[frame->stack.sp].type = EJVT_INT;
+            break;
+        case OP_F2D:
+            frame->stack.stack[frame->stack.sp].type = EJVT_DOUBLE;
+            *(double*)frame->stack.stack[frame->stack.sp].value = *(float*)frame->stack.stack[frame->stack.sp].value; 
+            break;
+        case OP_F2L:
+            frame->stack.stack[frame->stack.sp].type = EJVT_LONG;
+            *(int64_t*)frame->stack.stack[frame->stack.sp].value = *(float*)frame->stack.stack[frame->stack.sp].value; 
+            break;
+        case OP_F2I:
+            frame->stack.stack[frame->stack.sp].type = EJVT_INT;
+            *(int32_t*)frame->stack.stack[frame->stack.sp].value = *(float*)frame->stack.stack[frame->stack.sp].value; 
+            break;
+        case OP_D2F:
+            frame->stack.stack[frame->stack.sp].type = EJVT_FLOAT;
+            *(float*)frame->stack.stack[frame->stack.sp].value = *(double*)frame->stack.stack[frame->stack.sp].value; 
+            break;
+        case OP_D2I:
+            frame->stack.stack[frame->stack.sp].type = EJVT_INT;
+            *(int32_t*)frame->stack.stack[frame->stack.sp].value = *(double*)frame->stack.stack[frame->stack.sp].value; 
+            break;
+        case OP_D2L:
+            frame->stack.stack[frame->stack.sp].type = EJVT_LONG;
+            *(int64_t*)frame->stack.stack[frame->stack.sp].value = *(double*)frame->stack.stack[frame->stack.sp].value; 
             break;
 
         default: break;
@@ -614,7 +651,6 @@ jvm_error_t jvm_new_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_
     FAIL_SET_JUMP(object,err,JVM_OOM,exit);
 
     objectmanager_class_object_t* cobject = object->data;
-    printf("requested class %s, got: %s\n",new_class->this_name,cobject->class->this_name);
 
     *(void**)new_value.value = object;
     frame->stack.stack[frame->stack.sp++] = new_value;

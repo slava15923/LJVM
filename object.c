@@ -260,9 +260,28 @@ void objectmanager_gc(jvm_instance_t* jvm){
             if(finalize_method){
                 jvm_value_t args[] = {{EJVT_REFERENCE}};
                 *(void**)args[0].value = finalize_cur;
+                TODO("Exception handling.");
 
-                TODO("CATCH EXCEPTIONS");
-                jvm_invoke(jvm,NULL, finalize_method, 1, args);
+                jvm_value_t stack[finalize_method->frame_descriptor.stack_size];
+                jvm_frame_t finalize_frame = {
+                    .jvm = jvm,
+                    .method = finalize_method,
+                    .previous_frame = &(jvm_frame_t){
+                        .method = &(classlinker_method_t){
+                            .name = "GC_exception_catcher_stub",
+                            .flags = ACC_NATIVE,
+                        },
+                        .jvm = jvm,
+                    },
+                    .native_exceptions = LIST_HEAD_INIT(finalize_frame.native_exceptions),
+                    .locals = (jvm_value_t[]){},
+                    .stack.stack = stack,
+                };
+                INIT_LIST_HEAD(&finalize_frame.previous_frame->native_exceptions);
+
+                finalize_method->fn(&finalize_frame);
+
+                while(jvm_native_catch_exception(finalize_frame.previous_frame)) {;}; //Currently just removing thoose exceptions to let next GC call remove them
             }
         }
     }
@@ -390,7 +409,6 @@ void objectmanager_gc(jvm_instance_t* jvm){
         }
     }
 
-
     hashmap_cleanup(&pointer_fix_table);
     hashmap_cleanup(&reverse_pointer_fix_table);
 }
@@ -497,7 +515,6 @@ objectmanager_array_object_t* objectmanager_get_array_object_info(objectmanager_
 
 classlinker_field_t* objectmanager_class_object_get_field(jvm_frame_t* frame, objectmanager_class_object_t* class_object,
                                                           char* name){
-    classlinker_field_t* found = NULL;
     for(classlinker_class_t* cur = class_object->class; cur; cur = cur->parent){
         classlinker_normalclass_t* class_info = cur->info;
         for(unsigned i = 0; i < class_info->fields_count; i++){            

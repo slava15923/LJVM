@@ -108,13 +108,23 @@ static jvm_opcode_executor_t opcode_executors[211] = {
     [OP_ANEWARRAY] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_anewarray_opcode},
 
     [OP_DUP] = {0,NULL,jvm_dup_opcodes},
+    [OP_DUP2] = {0,NULL,jvm_dup_opcodes},
 
-    [OP_I2B] = {0,NULL,jvm_i2ANY_opcodes},
-    [OP_I2C] = {0,NULL,jvm_i2ANY_opcodes},
-    [OP_I2D] = {0,NULL,jvm_i2ANY_opcodes},
-    [OP_I2F] = {0,NULL,jvm_i2ANY_opcodes},
-    [OP_I2L] = {0,NULL,jvm_i2ANY_opcodes},
-    [OP_I2S] = {0,NULL,jvm_i2ANY_opcodes},
+    [OP_I2B] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_I2C] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_I2D] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_I2F] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_I2L] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_I2S] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_L2I] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_L2F] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_L2D] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_D2I] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_D2F] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_D2L] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_F2I] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_F2D] = {0,NULL,jvm_ANY2ANY_opcodes},
+    [OP_F2L] = {0,NULL,jvm_ANY2ANY_opcodes},
 
     [OP_ATHROW] = {0,NULL,jvm_athrow_opcode},
 
@@ -325,16 +335,16 @@ exit:
 
 objectmanager_object_t* jvm_native_catch_exception(jvm_frame_t* frame){ //Native only
     jvm_native_exception_t* exception = NULL;
-    list_for_each_entry(exception,&frame->native_exceptions,list){
-        break;
-    }
-    if(exception){
-        list_del(&exception->list);
+    jvm_native_exception_t* tmp = NULL;
+    list_for_each_entry_safe(exception,tmp,&frame->native_exceptions,list){
         objectmanager_object_t* ret = exception->exception_object;
+        list_del(&exception->list);
         arena_free_block(exception);
 
         return ret;
-    } else return NULL;
+    }
+
+    return NULL;
 }
 
 jvm_error_t jvm_launch_class(jvm_instance_t* instance, char* class, int nargs, char** args){

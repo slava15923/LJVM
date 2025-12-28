@@ -30,6 +30,7 @@ static jvm_error_t outputstream_close(jvm_frame_t* frame);
 static jvm_error_t outputstream_flush(jvm_frame_t* frame);
 static jvm_error_t outputstream_writebytes(jvm_frame_t* frame);
 static jvm_error_t object_clone(jvm_frame_t* frame);
+static jvm_error_t object_finalize(jvm_frame_t* frame);
 
 static jvm_error_t printstream_printbool(jvm_frame_t* frame);
 static jvm_error_t printstream_printchar(jvm_frame_t* frame);
@@ -45,7 +46,7 @@ static jvm_error_t printstream_printlnvoid(jvm_frame_t* frame);
 static jvm_error_t printstream_printlnobject(jvm_frame_t* frame);
 
 classlinker_normalclass_t java_lang_Object_info = {
-    .methods_count = 3,
+    .methods_count = 4,
     .methods = (classlinker_method_t[]){
         {
             .name = "<clinit>",
@@ -65,7 +66,14 @@ classlinker_normalclass_t java_lang_Object_info = {
             .frame_descriptor.arguments_count = 1,
             .fn = object_clone,
             .flags = ACC_NATIVE,
-        }
+        },
+        {
+            .name = "finalize",
+            .raw_description = "()V",
+            .flags = ACC_NATIVE,
+            .fn = object_finalize,
+        },
+
     },
 };
 
@@ -451,6 +459,10 @@ static jvm_error_t object_clinit(jvm_frame_t* frame){
 static jvm_error_t object_init(jvm_frame_t* frame){
     return JVM_OK;
 }
+static jvm_error_t object_finalize(jvm_frame_t* frame){
+    return JVM_OK;
+}
+
 static jvm_error_t object_clone(jvm_frame_t* frame){
     objectmanager_object_t* self = *(void**)frame->locals[0].value;
     objectmanager_object_t* argument = *(void**)frame->locals[1].value;

@@ -445,13 +445,17 @@ void objectmanager_gc(jvm_instance_t* jvm){
     jvm_unlock(jvm);
 }
 
+void objectmanager_wakeup_gc(jvm_instance_t* jvm){
+    //Currenly just call GC, freeRTOS and windows should wakeup GC thread, give him JVM, and call objectmanager_gc()
+    objectmanager_gc(jvm);
+}
 
 objectmanager_object_t* objectmanager_new_class_object(jvm_frame_t* frame,
                                                        classlinker_class_t* class){
 
     unsigned alloc_size = sizeof(objectmanager_object_t) + sizeof(objectmanager_class_object_t) + ((class->generation + 1) * sizeof(classlinker_field_t*));
-
-    unsigned ci = class->generation;
+    objectmanager_object_t* new_object = NULL;
+    jvm_lock(frame->jvm);
 
     for(classlinker_class_t* cur = class; cur; cur = cur->parent){
         classlinker_normalclass_t* class_info = cur->info;
@@ -460,17 +464,19 @@ objectmanager_object_t* objectmanager_new_class_object(jvm_frame_t* frame,
 
     void* memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
     if(memory == NULL){
-        objectmanager_gc(frame->jvm);
+        jvm_unlock(frame->jvm);
+        objectmanager_wakeup_gc(frame->jvm);
 
+        jvm_lock(frame->jvm);
         memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
-        if(memory == NULL) return NULL;
+        if(memory == NULL) goto exit;
     }
 
     void* cobject_memory = memory + sizeof(objectmanager_object_t);
     void* cobject_fields_memory = cobject_memory + sizeof(objectmanager_class_object_t);
     void* cobject_fields_content_memory = cobject_fields_memory + ((class->generation + 1) * sizeof(classlinker_field_t*));
 
-    objectmanager_object_t* new_object = memory;
+    new_object = memory;
     objectmanager_class_object_t* cobject = cobject_memory;
 
     INIT_LIST_HEAD(&new_object->list);
@@ -494,22 +500,28 @@ objectmanager_object_t* objectmanager_new_class_object(jvm_frame_t* frame,
         memcpy(cobject->fields[cur_class->generation],class_info->fields,class_info->fields_count * sizeof(classlinker_field_t));
     }
 
+exit:
+    jvm_unlock(frame->jvm);
     return new_object;
 }
 
 objectmanager_object_t* objectmanager_new_array_object(jvm_frame_t* frame, jvm_value_type_t type,
                                                        size_t size){
     unsigned alloc_size = sizeof(objectmanager_object_t) + sizeof(objectmanager_array_object_t) + (sizeof(jvm_value_t) * size);
+    objectmanager_object_t* array_obj = NULL;
+    jvm_lock(frame->jvm);
 
     void* memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
     if(memory == NULL){
-        objectmanager_gc(frame->jvm);
+        jvm_unlock(frame->jvm);
+        objectmanager_wakeup_gc(frame->jvm);
         
+        jvm_lock(frame->jvm);
         memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
-        if(memory == NULL) return NULL;
+        if(memory == NULL) goto exit;
     }
 
-    objectmanager_object_t* array_obj = memory;
+    array_obj = memory;
     objectmanager_array_object_t* array = memory + sizeof(objectmanager_object_t);
 
     INIT_LIST_HEAD(&array_obj->list);
@@ -527,6 +539,8 @@ objectmanager_object_t* objectmanager_new_array_object(jvm_frame_t* frame, jvm_v
         array->elements[i].type = type;
     }
 
+exit:
+    jvm_unlock(frame->jvm);
     return array_obj;
 }
 

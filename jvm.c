@@ -412,8 +412,12 @@ jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_obje
 
     FAIL_SET_JUMP(exception_cobject,err,JVM_OPCODE_INVALID,exit);
 
+    printf("\n===== exception stack trace ====\n");
     for(jvm_frame_t* cur = frame; cur; cur = cur->previous_frame){
         classlinker_method_t* cur_method = cur->method;
+        printf("%s:   %s/%s()@%zd\n",(cur->method->flags & ACC_NATIVE) == ACC_NATIVE ? "native" : "bytecode", 
+                                                                    cur->method->class->this_name,cur->method->name,(ssize_t)cur->pc);
+
         if((cur_method->flags & ACC_NATIVE) != ACC_NATIVE){
             classlinker_bytecode_t* bytecode = cur_method->userctx;
             for(unsigned i = 0; i < bytecode->exceptiontable_size; i++){
@@ -443,6 +447,7 @@ jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_obje
     }
 
 exit:
+    printf("===== exception trace end   ====\n");
     return err;
 }
 

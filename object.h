@@ -32,7 +32,7 @@ typedef struct{
 
 
 jvm_error_t objectmanager_init_heap(jvm_instance_t* jvm, uint32_t heap_size);
-void objectmanager_gc(jvm_instance_t* jvm); //Scans the whole jvm instance
+void objectmanager_wakeup_gc(jvm_instance_t* jvm); //Wakes up GC to clear memory
 
 objectmanager_object_t* objectmanager_new_class_object(jvm_frame_t* frame,
                                                        classlinker_class_t* class);

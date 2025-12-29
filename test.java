@@ -68,11 +68,6 @@ class test_app{
 		System.out.println(no.equals(new Object()));
 		System.out.println(no.hashCode());
 
-		//while(true){
-			System.out.println(new Object());
-		//}
-
-
 		byte[] byte_array = new byte[64];
 
 		for(int i = 0; i < 64; i++){
@@ -83,6 +78,5 @@ class test_app{
 			System.out.print(' ');
 		}
 		System.out.println();
-		
 	}
 }

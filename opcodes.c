@@ -1087,7 +1087,7 @@ exit:
 }
 
 jvm_error_t jvm_dup_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
-    assert(opcode == OP_DUP); //TODO: other DUPs
+    assert(opcode == OP_DUP && "TODO: other OP_DUPs");
 
     uint16_t prev_sp = frame->stack.sp - 1;
     frame->stack.stack[frame->stack.sp++] = frame->stack.stack[prev_sp];

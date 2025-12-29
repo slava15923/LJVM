@@ -32,7 +32,6 @@ typedef enum{
 typedef struct classlinker_class_t classlinker_class_t;
 typedef struct classlinker_class_t{
     struct list_head list;
-    pthread_mutex_t monitor;
 
     classloader_class_t* raw_class; //Temporary pointer, used only while linking
 

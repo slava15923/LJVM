@@ -688,10 +688,7 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
 
     //Step 6: initialising monitors
     list_for_each_entry(linkable_class, &linker->loaded_classes,list){
-        pthread_mutexattr_t attr;
-        pthread_mutexattr_init(&attr);
-        pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
-        pthread_mutex_init(&linkable_class->monitor,&attr);
+        //TODO: platform dependant code
     }
 exit:
     return err;

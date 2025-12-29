@@ -239,6 +239,7 @@ classloader_instance_t* classloader_new(){
 }
 
 int classloader_load_jar(classloader_instance_t* instance, const char* jar){
+    return -1;
 }
 
 classloader_error_t classloader_load_class(classloader_instance_t* instance, file_reader_t* reader){

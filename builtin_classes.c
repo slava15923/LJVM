@@ -126,7 +126,7 @@ classlinker_class_t java_lang_Clonable = {
     .this_name = "java/lang/Cloneable",
     .generation = 1,
     .parent = &java_lang_Object,
-    .info = &java_lang_Clonable,
+    .info = &java_lang_Clonable_info,
 };
 
 classlinker_normalclass_t java_lang_String_info = {
@@ -778,7 +778,6 @@ static jvm_error_t printstream_printchararray(jvm_frame_t* frame){
 
     err = printstream_common(frame,byte_array_object);
 
-exit:
     return err;   
 }
 

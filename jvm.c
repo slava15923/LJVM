@@ -415,7 +415,7 @@ jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_obje
     printf("\n===== exception stack trace ====\n");
     for(jvm_frame_t* cur = frame; cur; cur = cur->previous_frame){
         classlinker_method_t* cur_method = cur->method;
-        printf("%s:   %s/%s()@%zd\n",(cur->method->flags & ACC_NATIVE) == ACC_NATIVE ? "native" : "bytecode", 
+        printf("%s:   %s/%s():%zd\n",(cur->method->flags & ACC_NATIVE) == ACC_NATIVE ? "native" : "bytecode", 
                                                                     cur->method->class->this_name,cur->method->name,(ssize_t)cur->pc);
 
         if((cur_method->flags & ACC_NATIVE) != ACC_NATIVE){
@@ -564,4 +564,6 @@ int main(){
     jvm_instance_t* jvm = jvm_new(linker, 2 * 1024 * 1024);
 
     jvm_launch_class(jvm,"test_app",1,(char*[]){"Hello world!\n"});
+
+    return 0;
 }

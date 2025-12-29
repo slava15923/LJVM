@@ -162,7 +162,6 @@ jvm_error_t jvm_add_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
     }
     frame->stack.stack[frame->stack.sp++] = new_value;
 
-exit:
     return err;
 }
 
@@ -244,7 +243,6 @@ jvm_error_t jvm_goto_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinke
 
     frame->pc += (offset - 2);
 
-exit:
     return err;
 }
 
@@ -295,7 +293,6 @@ jvm_error_t jvm_ificmp_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlin
         frame->pc += offset;
     
 
-exit:
     return err;
 }
 
@@ -325,7 +322,6 @@ jvm_error_t jvm_ifnull_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlin
         frame->pc += offset;
     
 
-exit:
     return err;
 }
 
@@ -375,7 +371,6 @@ jvm_error_t jvm_ifi_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
         frame->pc += offset;
     
 
-exit:
     return err;
 }
 
@@ -414,7 +409,6 @@ jvm_error_t jvm_pop_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
         default: break;
     }
 
-exit:
     return err;
 }
 
@@ -450,7 +444,6 @@ jvm_error_t jvm_iconst_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlin
 
     frame->stack.stack[frame->stack.sp++] = value;
 
-exit:
     return err;
 }
 
@@ -597,59 +590,59 @@ exit:
 jvm_error_t jvm_ANY2ANY_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
     switch(opcode){
         case OP_I2B:
-            frame->stack.stack[frame->stack.sp].type = EJVT_INT;
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_INT;
             break;
         case OP_I2S:
-            frame->stack.stack[frame->stack.sp].type = EJVT_SHORT;
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_SHORT;
             break;
         case OP_I2C:
-            frame->stack.stack[frame->stack.sp].type = EJVT_CHAR;
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_CHAR;
             break;
         case OP_I2L:
-            frame->stack.stack[frame->stack.sp].type = EJVT_LONG;
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_LONG;
             break;
         case OP_I2F:
-            frame->stack.stack[frame->stack.sp].type = EJVT_FLOAT;
-            *(float*)frame->stack.stack[frame->stack.sp].value = *(int32_t*)frame->stack.stack[frame->stack.sp].value; 
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_FLOAT;
+            *(float*)frame->stack.stack[frame->stack.sp - 1].value = *(int32_t*)frame->stack.stack[frame->stack.sp - 1].value; 
             break;
         case OP_I2D:
-            frame->stack.stack[frame->stack.sp].type = EJVT_DOUBLE;
-            *(double*)frame->stack.stack[frame->stack.sp].value = *(int32_t*)frame->stack.stack[frame->stack.sp].value; 
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_DOUBLE;
+            *(double*)frame->stack.stack[frame->stack.sp - 1].value = *(int32_t*)frame->stack.stack[frame->stack.sp - 1].value; 
             break;
         case OP_L2D:
-            frame->stack.stack[frame->stack.sp].type = EJVT_DOUBLE;
-            *(double*)frame->stack.stack[frame->stack.sp].value = *(int64_t*)frame->stack.stack[frame->stack.sp].value; 
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_DOUBLE;
+            *(double*)frame->stack.stack[frame->stack.sp - 1].value = *(int64_t*)frame->stack.stack[frame->stack.sp - 1].value; 
             break;
         case OP_L2F:
-            frame->stack.stack[frame->stack.sp].type = EJVT_FLOAT;
-            *(float*)frame->stack.stack[frame->stack.sp].value = *(int64_t*)frame->stack.stack[frame->stack.sp].value; 
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_FLOAT;
+            *(float*)frame->stack.stack[frame->stack.sp - 1].value = *(int64_t*)frame->stack.stack[frame->stack.sp - 1].value; 
             break;
         case OP_L2I:
-            frame->stack.stack[frame->stack.sp].type = EJVT_INT;
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_INT;
             break;
         case OP_F2D:
-            frame->stack.stack[frame->stack.sp].type = EJVT_DOUBLE;
-            *(double*)frame->stack.stack[frame->stack.sp].value = *(float*)frame->stack.stack[frame->stack.sp].value; 
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_DOUBLE;
+            *(double*)frame->stack.stack[frame->stack.sp - 1].value = *(float*)frame->stack.stack[frame->stack.sp - 1].value; 
             break;
         case OP_F2L:
-            frame->stack.stack[frame->stack.sp].type = EJVT_LONG;
-            *(int64_t*)frame->stack.stack[frame->stack.sp].value = *(float*)frame->stack.stack[frame->stack.sp].value; 
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_LONG;
+            *(int64_t*)frame->stack.stack[frame->stack.sp - 1].value = *(float*)frame->stack.stack[frame->stack.sp - 1].value; 
             break;
         case OP_F2I:
-            frame->stack.stack[frame->stack.sp].type = EJVT_INT;
-            *(int32_t*)frame->stack.stack[frame->stack.sp].value = *(float*)frame->stack.stack[frame->stack.sp].value; 
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_INT;
+            *(int32_t*)frame->stack.stack[frame->stack.sp - 1].value = *(float*)frame->stack.stack[frame->stack.sp - 1].value; 
             break;
         case OP_D2F:
-            frame->stack.stack[frame->stack.sp].type = EJVT_FLOAT;
-            *(float*)frame->stack.stack[frame->stack.sp].value = *(double*)frame->stack.stack[frame->stack.sp].value; 
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_FLOAT;
+            *(float*)frame->stack.stack[frame->stack.sp - 1].value = *(double*)frame->stack.stack[frame->stack.sp - 1].value; 
             break;
         case OP_D2I:
-            frame->stack.stack[frame->stack.sp].type = EJVT_INT;
-            *(int32_t*)frame->stack.stack[frame->stack.sp].value = *(double*)frame->stack.stack[frame->stack.sp].value; 
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_INT;
+            *(int32_t*)frame->stack.stack[frame->stack.sp - 1].value = *(double*)frame->stack.stack[frame->stack.sp - 1].value; 
             break;
         case OP_D2L:
-            frame->stack.stack[frame->stack.sp].type = EJVT_LONG;
-            *(int64_t*)frame->stack.stack[frame->stack.sp].value = *(double*)frame->stack.stack[frame->stack.sp].value; 
+            frame->stack.stack[frame->stack.sp - 1].type = EJVT_LONG;
+            *(int64_t*)frame->stack.stack[frame->stack.sp - 1].value = *(double*)frame->stack.stack[frame->stack.sp - 1].value; 
             break;
 
         default: break;
@@ -810,7 +803,7 @@ jvm_error_t jvm_sipush_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlink
     *(uint32_t*)value.value = *(uint16_t*)args[0];
 
     frame->stack.stack[frame->stack.sp++] = value;
-exit:
+
     return err;
 }
 
@@ -821,7 +814,7 @@ jvm_error_t jvm_bipush_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlink
     *(uint32_t*)value.value = *(uint8_t*)args[0];
 
     frame->stack.stack[frame->stack.sp++] = value;
-exit:
+
     return err;
 }
 
@@ -865,7 +858,6 @@ jvm_error_t jvm_mul_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
     }
     frame->stack.stack[frame->stack.sp++] = output;
 
-exit:
     return err;
 }
 
@@ -898,7 +890,6 @@ jvm_error_t jvm_sub_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
     }
     frame->stack.stack[frame->stack.sp++] = output;
 
-exit:
     return err;
 }
 
@@ -923,7 +914,6 @@ jvm_error_t jvm_and_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
     }
     frame->stack.stack[frame->stack.sp++] = output;
 
-exit:
     return err;
 }
 
@@ -948,7 +938,6 @@ jvm_error_t jvm_or_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_
     }
     frame->stack.stack[frame->stack.sp++] = output;
 
-exit:
     return err;
 }
 
@@ -973,7 +962,6 @@ jvm_error_t jvm_xor_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
     }
     frame->stack.stack[frame->stack.sp++] = output;
 
-exit:
     return err;
 }
 
@@ -1007,7 +995,6 @@ jvm_error_t jvm_div_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
     }
     frame->stack.stack[frame->stack.sp++] = output;
 
-exit:
     return err;
 }
 
@@ -1029,6 +1016,7 @@ jvm_error_t jvm_new_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_
 
     *(void**)new_value.value = object;
     frame->stack.stack[frame->stack.sp++] = new_value;
+
 exit:
     return err;
 }
@@ -1306,7 +1294,6 @@ jvm_error_t jvm_dcmp_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinke
 
     frame->stack.stack[frame->stack.sp++] = result;
 
-exit:
     return err;
 }
 
@@ -1343,7 +1330,6 @@ jvm_error_t jvm_fcmp_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinke
 
     frame->stack.stack[frame->stack.sp++] = result;
 
-exit:
     return err;
 }
 
@@ -1389,7 +1375,6 @@ jvm_error_t jvm_instanceof_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, class
         }
     }
 
-exit:
     frame->stack.stack[frame->stack.sp++] = result;
     return JVM_OK;
 }
@@ -1430,7 +1415,7 @@ jvm_error_t jvm_rem_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
     }
 
     frame->stack.stack[frame->stack.sp++] = result;
-exit:
+
     return err;
 }
 
@@ -1457,7 +1442,7 @@ jvm_error_t jvm_shl_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
     }
 
     frame->stack.stack[frame->stack.sp++] = result;
-exit:
+
     return err;
 }
 
@@ -1484,7 +1469,7 @@ jvm_error_t jvm_shr_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
     }
 
     frame->stack.stack[frame->stack.sp++] = result;
-exit:
+
     return err;
 }
 
@@ -1501,7 +1486,7 @@ jvm_error_t jvm_lcmp_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
     if(*(int64_t*)value1.value < *(int64_t*)value2.value) *(int32_t*)result.value = -1;
 
     frame->stack.stack[frame->stack.sp++] = result;
-exit:
+
     return err;
 }
 

@@ -1543,7 +1543,10 @@ jvm_error_t jvm_arraylength_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, clas
     objectmanager_array_object_t* array = objectmanager_get_array_object_info(obj);
     FAIL_SET_JUMP(array,err,JVM_OPPARAM_INVALID,exit);
 
-    *(uint32_t*)frame->stack.stack[frame->stack.sp++].value = array->count;
+    uint16_t sp = frame->stack.sp++;
+    
+    frame->stack.stack[sp].type = EJVT_INT;
+    *(uint32_t*)frame->stack.stack[sp].value = array->count;
 
 exit:
     return err;

@@ -312,7 +312,7 @@ void objectmanager_gc(jvm_instance_t* jvm){
 
                 finalize_method->fn(&finalize_frame);
 
-                while(jvm_native_catch_exception(finalize_frame.previous_frame)) {;}; //Currently just removing thoose exceptions to let next GC call remove them
+                //while(jvm_native_catch_exception(finalize_frame.previous_frame)) {;};
             }
         }
     }

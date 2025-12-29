@@ -142,7 +142,11 @@ static jvm_opcode_executor_t opcode_executors[211] = {
     [OP_ANEWARRAY] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_anewarray_opcode},
 
     [OP_DUP] = {0,NULL,jvm_dup_opcodes},
+    [OP_DUPx1] = {0,NULL,jvm_dup_opcodes},
+    [OP_DUPx2] = {0,NULL,jvm_dup_opcodes},
     [OP_DUP2] = {0,NULL,jvm_dup_opcodes},
+    [OP_DUP2x1] = {0,NULL,jvm_dup_opcodes},
+    [OP_DUP2x2] = {0,NULL,jvm_dup_opcodes},
 
     [OP_I2B] = {0,NULL,jvm_ANY2ANY_opcodes},
     [OP_I2C] = {0,NULL,jvm_ANY2ANY_opcodes},

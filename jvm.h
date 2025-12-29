@@ -53,11 +53,8 @@ typedef struct jvm_frame_t{
 
 typedef struct{
     struct list_head list;
-
-    pthread_t thread;
-    pthread_mutex_t mutex;
-    
     jvm_frame_t* topmost_frame;
+    objectmanager_object_t* JThread;
 }jvm_thread_t;
 
 typedef struct{ //I hate C include system sometimes

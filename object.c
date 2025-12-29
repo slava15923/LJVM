@@ -56,7 +56,8 @@ static bool is_object_in_used_list(objectmanager_object_t* object, struct list_h
     }
     return false;
 }
-static void objectmanager_object_clone_into(objectmanager_object_t* object,struct list_head* object_list, void* memory){
+
+void objectmanager_object_clone_into(objectmanager_object_t* object,struct list_head* object_list, void* memory){
     assert(memory);
 
     memcpy(memory,object,object->size);
@@ -64,7 +65,9 @@ static void objectmanager_object_clone_into(objectmanager_object_t* object,struc
     objectmanager_object_t* new_object = memory;
 
     INIT_LIST_HEAD(&new_object->list);
-    list_add(&new_object->list,object_list);
+
+    if(object_list)
+        list_add(&new_object->list,object_list);
 
     switch(new_object->type){
         case EJOMOT_CLASS:{
@@ -238,13 +241,41 @@ int ptr_cmp(const void* a, const void* b){
 }
 
 void objectmanager_gc(jvm_instance_t* jvm){
+    jvm_lock(jvm);
+
     struct list_head used_objects_list = LIST_HEAD_INIT(used_objects_list);
     struct list_head copied_objects_list = LIST_HEAD_INIT(copied_objects_list);
     objectmanager_scan_classes(jvm,&used_objects_list);
 
     jvm_thread_t* current_thread = NULL;
     list_for_each_entry(current_thread,&jvm->threads, list){
-        TODO("Thread freezing. Dont know how to do this in POSIX");
+        if(current_thread->JThread){ //Main thread in my jvm is not a thread at all
+
+            //Call function to freeze thread (implemented via java because it is OS dependant. Know how to implement it on Windows and FreeRTOS but not on posix)
+            jvm_frame_t freeze_frame = {
+                .jvm = jvm,
+                .locals = (jvm_value_t[1]){},
+            };
+            INIT_LIST_HEAD(&freeze_frame.native_exceptions);
+
+            classlinker_method_t* freeze_method = objectmanager_class_object_get_method(&freeze_frame,objectmanager_get_class_object_info(current_thread->JThread),
+                                                                             "os_freeze", "()V");
+            freeze_frame.method = freeze_method;
+            freeze_method->fn(&freeze_frame);
+            
+
+            //Add it to used list and scan what it contains
+            objectmanager_gc_capsule_t* object_capsule = arena_alloc(jvm->heap.heap_arena,sizeof(*object_capsule));
+            assert(object_capsule);
+
+            INIT_LIST_HEAD(&object_capsule->list);
+            object_capsule->object = current_thread->JThread;
+
+            list_add(&object_capsule->list,&used_objects_list);
+            objectmanager_scan_object(jvm,current_thread->JThread,&used_objects_list);
+        }
+
+
         objectmanager_scan_frame(current_thread->topmost_frame, &used_objects_list);
     }
     HASHMAP(void,objectmanager_object_t) pointer_fix_table = {0};
@@ -260,9 +291,9 @@ void objectmanager_gc(jvm_instance_t* jvm){
             if(finalize_method){
                 jvm_value_t args[] = {{EJVT_REFERENCE}};
                 *(void**)args[0].value = finalize_cur;
-                TODO("Exception handling.");
-
-                jvm_value_t stack[finalize_method->frame_descriptor.stack_size];
+                
+                
+                jvm_value_t stack[finalize_method->frame_descriptor.stack_size]; //I love using stack memory so much!
                 jvm_frame_t finalize_frame = {
                     .jvm = jvm,
                     .method = finalize_method,
@@ -299,7 +330,6 @@ void objectmanager_gc(jvm_instance_t* jvm){
 
         hashmap_insert(&pointer_fix_table,object,new_object,NULL);
         hashmap_insert(&reverse_pointer_fix_table,new_object,object,NULL);
-        TODO("Merge pointer fix tables if fragmentation issues appear");
 
         list_del(&gc_capsule->list);
         arena_free_block(gc_capsule);
@@ -411,6 +441,8 @@ void objectmanager_gc(jvm_instance_t* jvm){
 
     hashmap_cleanup(&pointer_fix_table);
     hashmap_cleanup(&reverse_pointer_fix_table);
+
+    jvm_unlock(jvm);
 }
 
 
@@ -538,38 +570,23 @@ classlinker_method_t* objectmanager_class_object_get_method(jvm_frame_t* frame, 
 }
 
 objectmanager_object_t* objectmanager_object_clone(jvm_frame_t* frame, objectmanager_object_t* object){
-    objectmanager_object_t* new_object = NULL;
-    switch(object->type){
-        case EJOMOT_CLASS:{
-            objectmanager_class_object_t* old_class_object = object->data;
-            new_object = objectmanager_new_class_object(frame,old_class_object->class);
-            if(new_object == NULL){
-                TODO("OOM exception!");
-                assert(new_object);
-            }
+    objectmanager_object_t* new_object = arena_alloc(frame->jvm->heap.gc_heap,object->size);
+    if(new_object == NULL){
+        objectmanager_gc(frame->jvm);
 
-            objectmanager_class_object_t* new_class_object = new_object->data;
-            for(classlinker_class_t* cur = old_class_object->class; cur; cur = cur->parent){
-                classlinker_normalclass_t* class_info = cur->info;
-                memcpy(new_class_object->fields[cur->generation],old_class_object->fields[cur->generation],class_info->fields_count * sizeof(old_class_object->fields[0][0]));
-            }
-        }
-        break;
-
-        case EJOMOT_ARRAY:{
-            objectmanager_array_object_t* old_array_object = object->data;
-            new_object = objectmanager_new_array_object(frame,old_array_object->elements[0].type, old_array_object->count);
-            if(new_object == NULL){
-                TODO("OOM exception!");
-                assert(new_object);
-            }
-
-            objectmanager_array_object_t* new_array_object = new_object->data;
-            memcpy(new_array_object->elements,old_array_object->elements,sizeof(old_array_object->elements[0]) * old_array_object->count);
-        }
-        break;
+        new_object = arena_alloc(frame->jvm->heap.gc_heap,object->size);
+        if(new_object == NULL) return NULL;
     }
+    objectmanager_object_clone_into(object,&frame->jvm->heap.object_list,new_object);
+
     return new_object;
+}
+
+void objectmanager_object_lock(objectmanager_object_t* object){
+
+}
+void objectmanager_object_unlock(objectmanager_object_t* object){
+    
 }
 
 bool objectmanager_class_object_is_compatible_to(objectmanager_class_object_t* class_object, classlinker_class_t* class){

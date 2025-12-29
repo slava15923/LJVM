@@ -645,27 +645,22 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
                     new_method->class = linkable_class;
                 }
 
-                if(new_method->frame_descriptor.locals_count == 0){
-                    new_method->frame_descriptor.locals_count = new_method->frame_descriptor.arguments_count; //This is for thoose who lazy to add locals count
-                            
-                }
                 if((new_method->flags & ACC_STATIC) != ACC_STATIC){
                         new_method->frame_descriptor.locals_count++;
-                }      
+                }
+                new_method->frame_descriptor.locals_count += new_method->frame_descriptor.arguments_count; //This is for thoose who lazy to add locals count     
 
             }
-        } else if(linkable_class->type == EClass && linkable_class->raw_class == NULL){ //Allow builtin classes to use native (maybe to load jnis from library?)
+        } else if(linkable_class->type == EClass && linkable_class->raw_class == NULL){ //BUILTIN classes fixup
             classlinker_normalclass_t* class_info = linkable_class->info;
             for(unsigned i = 0; i < class_info->methods_count; i++){
                 classlinker_method_t* new_method = &class_info->methods[i];        
                 new_method->class = linkable_class;
 
-                if(new_method->frame_descriptor.locals_count == 0){
-                    new_method->frame_descriptor.locals_count = new_method->frame_descriptor.arguments_count; //This is for thoose who lazy to add locals count
-                }                
                 if((new_method->flags & ACC_STATIC) != ACC_STATIC){
                         new_method->frame_descriptor.locals_count++;
                 }
+                new_method->frame_descriptor.locals_count += new_method->frame_descriptor.arguments_count; //This is for thoose who lazy to add locals count
             }
         }
     }
@@ -752,17 +747,24 @@ classlinker_field_t* classlinker_find_staticfield(jvm_frame_t* frame, classlinke
 }
 
 bool classlinker_is_classes_compatible(classlinker_class_t* class, classlinker_class_t* compatible_to){
-
     for(classlinker_class_t* cur = class; cur; cur = cur->parent){
         if(compatible_to == cur)
             return true;
 
         for(unsigned i = 0; i < cur->implements_count; i++){
-            if(cur->implements[i] == class) return true;
+            if(cur->implements[i] == class) return true; //Infinite recursion prevention. There may be more potential cases but that for later
             
             if(classlinker_is_classes_compatible(cur->implements[i], compatible_to))
                 return true;
         }
     }
     return false;
+}
+
+void classlinker_class_lock(classlinker_class_t* class){
+
+}
+
+void classlinker_class_unlock(classlinker_class_t* class){
+    
 }

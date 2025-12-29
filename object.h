@@ -49,6 +49,10 @@ classlinker_field_t* objectmanager_class_object_get_field(jvm_frame_t* frame, ob
                                                           char* name);
 
 objectmanager_object_t* objectmanager_object_clone(jvm_frame_t* frame, objectmanager_object_t* object);
+void objectmanager_object_clone_into(objectmanager_object_t* object,struct list_head* object_list, void* memory);
 
 objectmanager_class_object_t* objectmanager_get_class_object_info(objectmanager_object_t* object);
 objectmanager_array_object_t* objectmanager_get_array_object_info(objectmanager_object_t* object);
+
+void objectmanager_object_lock(objectmanager_object_t* object);
+void objectmanager_object_unlock(objectmanager_object_t* object);

@@ -6,7 +6,7 @@
 
 #define FAIL_SET_JUMP(expression, var, value, label) {if(!(expression)){(var) = (value); printf("%s:%d ERROR HAPPENED, CODE: %x\n",__PRETTY_FUNCTION__,__LINE__,(unsigned)(size_t)(value)); *(int*)1 = 0;goto label;}}
 
-#define __SUPPRESS_TODO__
+//#define __SUPPRESS_TODO__
 
 #ifndef __SUPPRESS_TODO__
 #define TODO(what) printf("%s: TODO:: '%s' at line %d\n",__PRETTY_FUNCTION__, (what), __LINE__)

@@ -168,3 +168,7 @@ classlinker_method_t* classlinker_find_method(jvm_frame_t* frame, classlinker_cl
 classlinker_field_t* classlinker_find_staticfield(jvm_frame_t* frame, classlinker_class_t* class, char* field_name);
 
 bool classlinker_is_classes_compatible(classlinker_class_t* class, classlinker_class_t* compatible_to);
+
+
+void classlinker_class_lock(classlinker_class_t* class);
+void classlinker_class_unlock(classlinker_class_t* class);

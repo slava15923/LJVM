@@ -26,11 +26,14 @@ static jvm_error_t object_init(jvm_frame_t* frame);
 
 static jvm_error_t ioexception_init(jvm_frame_t* frame);
 
+static jvm_error_t object_clone(jvm_frame_t* frame);
+static jvm_error_t object_finalize(jvm_frame_t* frame);
+static jvm_error_t object_equals(jvm_frame_t* frame);
+static jvm_error_t object_hashcode(jvm_frame_t* frame);
+
 static jvm_error_t outputstream_close(jvm_frame_t* frame);
 static jvm_error_t outputstream_flush(jvm_frame_t* frame);
 static jvm_error_t outputstream_writebytes(jvm_frame_t* frame);
-static jvm_error_t object_clone(jvm_frame_t* frame);
-static jvm_error_t object_finalize(jvm_frame_t* frame);
 
 static jvm_error_t printstream_printbool(jvm_frame_t* frame);
 static jvm_error_t printstream_printchar(jvm_frame_t* frame);
@@ -46,7 +49,7 @@ static jvm_error_t printstream_printlnvoid(jvm_frame_t* frame);
 static jvm_error_t printstream_printlnobject(jvm_frame_t* frame);
 
 classlinker_normalclass_t java_lang_Object_info = {
-    .methods_count = 4,
+    .methods_count = 6,
     .methods = (classlinker_method_t[]){
         {
             .name = "<clinit>",
@@ -73,6 +76,19 @@ classlinker_normalclass_t java_lang_Object_info = {
             .flags = ACC_NATIVE,
             .fn = object_finalize,
         },
+        {
+            .name = "equals",
+            .raw_description = "(Ljava/lang/Object;)Z",
+            .frame_descriptor.arguments_count = 1,
+            .fn = object_equals,
+            .flags = ACC_NATIVE,
+        },
+        {
+            .name = "hashCode",
+            .raw_description = "()I",
+            .fn = object_hashcode,
+            .flags = ACC_NATIVE,
+        }
 
     },
 };
@@ -83,6 +99,16 @@ classlinker_class_t java_lang_Object = {
     .info = &java_lang_Object_info,
     .implements_count = 1,
     .implements = (classlinker_class_t*[]){&java_lang_Clonable},
+};
+
+classlinker_normalclass_t java_lang_Class_info = {
+};
+
+classlinker_class_t java_lang_Class = {
+    .this_name = "java/lang/Class",
+    .info = &java_lang_Class_info,
+    .parent = &java_lang_Object,
+    .generation = 1,
 };
 
 classlinker_normalclass_t java_lang_Clonable_info = {
@@ -419,6 +445,7 @@ classlinker_class_t java_lang_System = {
 classlinker_class_t* builtin_classes[] = {
     &java_lang_Object,
     &java_lang_Clonable,
+    &java_lang_Class,
     &java_lang_String,
     &java_io_IOException,
     &java_io_OutputStream,
@@ -470,6 +497,55 @@ static jvm_error_t object_clone(jvm_frame_t* frame){
     uint16_t return_sp = frame->previous_frame->stack.sp++;
     frame->previous_frame->stack.stack[return_sp].type = EJVT_REFERENCE;
     *(void**)frame->previous_frame->stack.stack[return_sp].value = objectmanager_object_clone(frame, argument);
+
+    return JVM_OK;
+}
+
+static uint32_t h31_hash(const char* s, size_t len)
+{
+    uint32_t h = 0;
+    while (len) {
+        h = 31 * h + *s++;
+        --len;
+    }
+    return h;
+}
+
+static jvm_error_t object_equals(jvm_frame_t* frame){
+    objectmanager_object_t* self = *(void**)frame->locals[0].value;
+    objectmanager_object_t* compare_to = *(void**)frame->locals[1].value;
+
+    jvm_value_t return_value = {
+        .type = EJVT_BOOL,
+        .value = {0},
+    };
+
+    if(compare_to && self->type == compare_to->type){
+
+        void* copy_buffer = alloca(self->size > compare_to->size ? self->size : compare_to->size); //Copying into this buffer to ensure that pointers are the same
+        objectmanager_object_clone_into(self,NULL,copy_buffer);
+
+        int self_hash = h31_hash((char*)copy_buffer, self->size);
+
+        objectmanager_object_clone_into(compare_to, NULL,copy_buffer);
+        int cmp_hash = h31_hash((char*)copy_buffer,compare_to->size);
+
+        *(bool*)return_value.value = self_hash == cmp_hash;
+    }
+
+    frame->previous_frame->stack.stack[frame->previous_frame->stack.sp++] = return_value;
+
+    return JVM_OK;
+}
+
+static jvm_error_t object_hashcode(jvm_frame_t* frame){
+    objectmanager_object_t* self = *(void**)frame->locals[0].value;
+    jvm_value_t hashcode = {0};
+
+    hashcode.type = EJVT_INT;
+    *(uint32_t*)hashcode.value = h31_hash((char*)self, self->size); //Objects are contigous in memory
+
+    frame->previous_frame->stack.stack[frame->previous_frame->stack.sp++] = hashcode;
 
     return JVM_OK;
 }

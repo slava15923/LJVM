@@ -22,8 +22,8 @@ typedef struct{
 
 extern __thread jvm_thread_t* jvm_current_thread;
 
-void jvm_thread_lock();
-void jvm_thread_unlock();
+void jvm_lock(jvm_instance_t* jvm);
+void jvm_unlock(jvm_instance_t* jvm);
 
 jvm_error_t jvm_bytecode_executor(jvm_frame_t* frame);
 

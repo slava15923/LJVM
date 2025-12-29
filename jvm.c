@@ -66,13 +66,29 @@ static jvm_opcode_executor_t opcode_executors[211] = {
     [OP_ISTORE2] = {0,NULL,jvm_istore_opcodes},
     [OP_ISTORE3] = {0,NULL,jvm_istore_opcodes},
 
+    [OP_LSTORE] = {1,(jvm_opcode_argtype_t[]){EJOT_U8},jvm_lstore_opcodes},
+    [OP_LSTORE0] = {0,NULL,jvm_lstore_opcodes},
+    [OP_LSTORE1] = {0,NULL,jvm_lstore_opcodes},
+    [OP_LSTORE2] = {0,NULL,jvm_lstore_opcodes},
+    [OP_LSTORE3] = {0,NULL,jvm_lstore_opcodes},
+
+    [OP_FSTORE] = {1,(jvm_opcode_argtype_t[]){EJOT_U8},jvm_fstore_opcodes},
+    [OP_FSTORE0] = {0,NULL,jvm_fstore_opcodes},
+    [OP_FSTORE1] = {0,NULL,jvm_fstore_opcodes},
+    [OP_FSTORE2] = {0,NULL,jvm_fstore_opcodes},
+    [OP_FSTORE3] = {0,NULL,jvm_fstore_opcodes},
+
+    [OP_DSTORE] = {1,(jvm_opcode_argtype_t[]){EJOT_U8},jvm_dstore_opcodes},
+    [OP_DSTORE0] = {0,NULL,jvm_dstore_opcodes},
+    [OP_DSTORE1] = {0,NULL,jvm_dstore_opcodes},
+    [OP_DSTORE2] = {0,NULL,jvm_dstore_opcodes},
+    [OP_DSTORE3] = {0,NULL,jvm_dstore_opcodes},
+
     [OP_ASTORE] = {1,(jvm_opcode_argtype_t[]){EJOT_U8},jvm_astore_opcodes},
     [OP_ASTORE0] = {0,NULL,jvm_astore_opcodes},
     [OP_ASTORE1] = {0,NULL,jvm_astore_opcodes},
     [OP_ASTORE2] = {0,NULL,jvm_astore_opcodes},
     [OP_ASTORE3] = {0,NULL,jvm_astore_opcodes},
-
-    [OP_BASTORE] = {0,NULL,jvm_bastore_opcodes},
     
 
     [OP_ILOAD] = {1,(jvm_opcode_argtype_t[]){EJOT_U8},jvm_iload_opcodes},
@@ -80,6 +96,24 @@ static jvm_opcode_executor_t opcode_executors[211] = {
     [OP_ILOAD1] = {0,NULL,jvm_iload_opcodes},
     [OP_ILOAD2] = {0,NULL,jvm_iload_opcodes},
     [OP_ILOAD3] = {0,NULL,jvm_iload_opcodes},
+
+    [OP_FLOAD] = {1,(jvm_opcode_argtype_t[]){EJOT_U8},jvm_fload_opcodes},
+    [OP_FLOAD0] = {0,NULL,jvm_fload_opcodes},
+    [OP_FLOAD1] = {0,NULL,jvm_fload_opcodes},
+    [OP_FLOAD2] = {0,NULL,jvm_fload_opcodes},
+    [OP_FLOAD3] = {0,NULL,jvm_fload_opcodes},
+
+    [OP_DLOAD] = {1,(jvm_opcode_argtype_t[]){EJOT_U8},jvm_fload_opcodes},
+    [OP_DLOAD0] = {0,NULL,jvm_fload_opcodes},
+    [OP_DLOAD1] = {0,NULL,jvm_fload_opcodes},
+    [OP_DLOAD2] = {0,NULL,jvm_fload_opcodes},
+    [OP_DLOAD3] = {0,NULL,jvm_fload_opcodes},
+
+    [OP_LLOAD] = {1,(jvm_opcode_argtype_t[]){EJOT_U8},jvm_fload_opcodes},
+    [OP_LLOAD0] = {0,NULL,jvm_fload_opcodes},
+    [OP_LLOAD1] = {0,NULL,jvm_fload_opcodes},
+    [OP_LLOAD2] = {0,NULL,jvm_fload_opcodes},
+    [OP_LLOAD3] = {0,NULL,jvm_fload_opcodes},
 
     [OP_ALOAD] = {1,(jvm_opcode_argtype_t[]){EJOT_U8},jvm_aload_opcodes},
     [OP_ALOAD0] = {0,NULL,jvm_aload_opcodes},
@@ -130,24 +164,94 @@ static jvm_opcode_executor_t opcode_executors[211] = {
 
     [OP_ACONSTNULL] = {0,NULL,jvm_aconstnull},
 
+    [OP_AALOAD] = {0,NULL,jvm_arrayload_opcode},
+    [OP_BALOAD] = {0,NULL,jvm_arrayload_opcode},
+    [OP_CALOAD] = {0,NULL,jvm_arrayload_opcode},
+    [OP_SALOAD] = {0,NULL,jvm_arrayload_opcode},
+    [OP_IALOAD] = {0,NULL,jvm_arrayload_opcode},
+    [OP_LALOAD] = {0,NULL,jvm_arrayload_opcode},
+    [OP_FALOAD] = {0,NULL,jvm_arrayload_opcode},
+    [OP_DALOAD] = {0,NULL,jvm_arrayload_opcode},
+
+    [OP_AASTORE] = {0,NULL,jvm_arraystore_opcode},
+    [OP_BASTORE] = {0,NULL,jvm_arraystore_opcode},
+    [OP_CASTORE] = {0,NULL,jvm_arraystore_opcode},
+    [OP_SASTORE] = {0,NULL,jvm_arraystore_opcode},
+    [OP_IASTORE] = {0,NULL,jvm_arraystore_opcode},
+    [OP_LASTORE] = {0,NULL,jvm_arraystore_opcode},
+    [OP_FASTORE] = {0,NULL,jvm_arraystore_opcode},
+    [OP_DASTORE] = {0,NULL,jvm_arraystore_opcode},
+
+    [OP_ISUB] = {0,NULL,jvm_sub_opcodes},
+    [OP_LSUB] = {0,NULL,jvm_sub_opcodes},
+    [OP_FSUB] = {0,NULL,jvm_sub_opcodes},
+    [OP_DSUB] = {0,NULL,jvm_sub_opcodes},
+
+    [OP_IDIV] = {0,NULL,jvm_div_opcodes},
+    [OP_LDIV] = {0,NULL,jvm_div_opcodes},
+    [OP_FDIV] = {0,NULL,jvm_div_opcodes},
+    [OP_DDIV] = {0,NULL,jvm_div_opcodes},
+
+    [OP_IAND] = {0,NULL,jvm_and_opcodes},
+    [OP_LAND] = {0,NULL,jvm_and_opcodes},
+
+    [OP_IOR] = {0,NULL,jvm_or_opcodes},
+    [OP_LOR] = {0,NULL,jvm_or_opcodes},
+
+    [OP_IXOR] = {0,NULL,jvm_xor_opcodes},
+    [OP_LXOR] = {0,NULL,jvm_xor_opcodes},
+
+    [OP_DCMPG] = {0,NULL,jvm_dcmp_opcodes},
+    [OP_DCMPL] = {0,NULL,jvm_dcmp_opcodes},
+
+    [OP_FCMPG] = {0,NULL,jvm_fcmp_opcodes},
+    [OP_FCMPL] = {0,NULL,jvm_fcmp_opcodes},
+
+    [OP_IFeq] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifi_opcodes},
+    [OP_IFne] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifi_opcodes},
+    [OP_IFlt] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifi_opcodes},
+    [OP_IFle] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifi_opcodes},
+    [OP_IFgt] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifi_opcodes},
+    [OP_IFge] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifi_opcodes},
+
+    [OP_IFnull] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifnull_opcodes},
+    [OP_IFnonnull] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifnull_opcodes},
+
+    [OP_INEG] = {0,NULL,jvm_neg_opcodes},
+    [OP_LNEG] = {0,NULL,jvm_neg_opcodes},
+    [OP_FNEG] = {0,NULL,jvm_neg_opcodes},
+    [OP_DNEG] = {0,NULL,jvm_neg_opcodes},
+
+    [OP_INSTANCEOF] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_instanceof_opcode},
+
+    [OP_IREM] = {0,NULL,jvm_rem_opcodes},
+    [OP_LREM] = {0,NULL,jvm_rem_opcodes},
+    [OP_FREM] = {0,NULL,jvm_rem_opcodes},
+    [OP_DREM] = {0,NULL,jvm_rem_opcodes},
+
+    [OP_ISHL] = {0,NULL,jvm_shl_opcodes},
+    [OP_LSHL] = {0,NULL,jvm_shl_opcodes},
+    [OP_ISHR] = {0,NULL,jvm_shr_opcodes},
+    [OP_LSHR] = {0,NULL,jvm_shr_opcodes},
+
+    [OP_LCMP] = {0,NULL,jvm_lcmp_opcode},
+
+    [OP_LCONST0] = {0,NULL,jvm_lconst_opcodes},
+    [OP_LCONST1] = {0,NULL,jvm_lconst_opcodes},
+
+    [OP_MONITORENTER] = {0,NULL,jvm_monitor_opcodes},
+    [OP_MONITOREXIT] = {0,NULL,jvm_monitor_opcodes},
+
+    [OP_SWAP] = {0,NULL,jvm_swap_opcode},
+
     [OP_INVOKESTATIC] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_invokestatic_opcode},
     [OP_INVOKESPECIAL] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_invokespecial_opcode},
     [OP_INVOKEVIRTUAL] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_invokevirtual_opcode},
+    [OP_INVOKEINTERFACE] = {3,(jvm_opcode_argtype_t[]){EJOT_U16,EJOT_U8,EJOT_U8},jvm_invokevirtual_opcode}, //Temporary solution, investigate this opcode later!
+
 };
 
 #define JVM_EXECUTOR_RESERVED_MEMORY 512 * 1024
-
-void jvm_thread_lock(){ //GC will lock threads mutexes in order to stop them from further execution
-    if(jvm_current_thread){
-        pthread_mutex_lock(&jvm_current_thread->mutex);
-    }
-}
-
-void jvm_thread_unlock(){
-    if(jvm_current_thread){
-        pthread_mutex_unlock(&jvm_current_thread->mutex);
-    }
-}
 
 jvm_instance_t* jvm_new(classlinker_instance_t* linker, uint32_t heap_size){
     TODO("GC based memory manager");
@@ -171,11 +275,17 @@ jvm_instance_t* jvm_new(classlinker_instance_t* linker, uint32_t heap_size){
     return instance;
 }
 
+void jvm_lock(jvm_instance_t* jvm){
+
+}
+void jvm_unlock(jvm_instance_t* jvm){
+
+}
+
 jvm_error_t jvm_bytecode_executor(jvm_frame_t* frame){
     jvm_error_t err = JVM_OK;
     classlinker_bytecode_t* bytecode = frame->method->userctx;
 
-    jvm_thread_lock();
     void** arguments = arena_alloc(frame->jvm->arena,OPCODE_MAX_ARGUMENTS * sizeof(void*));
     FAIL_SET_JUMP(arguments,err,JVM_OOM,exit);
 
@@ -231,13 +341,11 @@ exit:
     }
     arena_free_block(arguments);
     
-    jvm_thread_unlock();
     return err;
 }
 
 jvm_error_t jvm_invoke(jvm_instance_t* instance, jvm_frame_t* previous_frame, classlinker_method_t* callable_method, unsigned nargs, jvm_value_t args[]){
     jvm_error_t err = JVM_OK;
-    jvm_thread_lock();
 
     FAIL_SET_JUMP(instance,err,JVM_UNKNOWN,exit);
     FAIL_SET_JUMP(callable_method,err,JVM_UNKNOWN,exit);
@@ -263,8 +371,13 @@ jvm_error_t jvm_invoke(jvm_instance_t* instance, jvm_frame_t* previous_frame, cl
         frame.locals[i] = args[i];
     }
 
-    if((callable_method->flags & ACC_SYNCHRONIZED) == ACC_SYNCHRONIZED)
-        TODO("Synchronized methods support");
+    if((callable_method->flags & ACC_SYNCHRONIZED) == ACC_SYNCHRONIZED){
+        if((callable_method->flags & ACC_STATIC) == ACC_STATIC){
+            classlinker_class_lock(callable_method->class);
+        } else {
+            objectmanager_object_lock(*(void**)frame.locals[0].value);
+        }
+    }
 
     jvm_error_t method_err = callable_method->fn(&frame);
     FAIL_SET_JUMP(method_err == JVM_OK,err,method_err,exit);
@@ -274,7 +387,6 @@ jvm_error_t jvm_invoke(jvm_instance_t* instance, jvm_frame_t* previous_frame, cl
     }
 
 exit:
-    jvm_thread_unlock();
     return err;
 }
 
@@ -290,8 +402,6 @@ exit:
 
 jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_object){
     jvm_error_t err = JVM_UNKNOWN;
-
-    jvm_thread_lock();
 
     classlinker_method_t* exception_handler = NULL;
     objectmanager_class_object_t* exception_cobject = objectmanager_get_class_object_info(exception_object);
@@ -329,7 +439,6 @@ jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_obje
     }
 
 exit:
-    jvm_thread_unlock();
     return err;
 }
 
@@ -381,16 +490,11 @@ jvm_error_t jvm_launch_class(jvm_instance_t* instance, char* class, int nargs, c
         *(void**)args_array->elements[i].value = string_arg;
     }
 
-    jvm_thread_t* new_thread = arena_alloc(instance->arena,sizeof(*new_thread));
+    jvm_thread_t* new_thread = arena_calloc(instance->arena,1,sizeof(*new_thread));
+
     INIT_LIST_HEAD(&new_thread->list);
     list_add(&instance->threads,&new_thread->list);
-
     new_thread->topmost_frame = &frame;
-
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&new_thread->mutex,&attr);
 
     jvm_current_thread = new_thread;
 
@@ -400,14 +504,14 @@ jvm_error_t jvm_launch_class(jvm_instance_t* instance, char* class, int nargs, c
     jvm_error_t main_err = jvm_invoke(instance,NULL,method,1,invoke_args);
     FAIL_SET_JUMP(main_err == JVM_OK,err,main_err,exit);
 
-exit:
-    pthread_mutex_destroy(&new_thread->mutex);
-    jvm_thread_t* tmp_thread = jvm_current_thread;
-    jvm_current_thread = NULL;
+exit:{
+        jvm_thread_t* tmp_thread = jvm_current_thread;
+        jvm_current_thread = NULL;
 
-    if(tmp_thread){
-        list_del(&tmp_thread->list);
-        arena_free_block(tmp_thread);
+        if(tmp_thread){
+            list_del(&tmp_thread->list);
+            arena_free_block(tmp_thread);
+        }
     }
     return err;
 }

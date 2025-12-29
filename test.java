@@ -60,11 +60,29 @@ class test_app{
 		System.out.println(private_fieldC.getter());
 
 		private_fieldC C = new private_fieldC();
+
+		C.second_field = 7676;
 		System.out.println(C.second_field);
 
-		while(true){
+		Object no = new Object();
+		System.out.println(no.equals(new Object()));
+		System.out.println(no.hashCode());
+
+		//while(true){
 			System.out.println(new Object());
+		//}
+
+
+		byte[] byte_array = new byte[64];
+
+		for(int i = 0; i < 64; i++){
+			byte_array[i] = ((byte)i);
 		}
+		for(int i = 0; i < 64; i++){
+			System.out.print(byte_array[i]);
+			System.out.print(' ');
+		}
+		System.out.println();
 		
 	}
 }

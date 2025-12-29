@@ -8,6 +8,7 @@
 #include "jvm_method.h"
 #include "object.h"
 
+#include <math.h>
 #include <stdint.h>
 
 jvm_error_t jvm_nop_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
@@ -193,17 +194,17 @@ jvm_error_t jvm_jsr_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
         default:
             FAIL_SET_JUMP(0,err,JVM_OPCODE_INVALID,exit);
         case OP_JSR:
-            offset -= sizeof(uint16_t) - 1;
-            offset += *(int16_t*)args[0];
+            offset = *(int16_t*)args[0];
+            offset -= sizeof(int16_t) - 1;
             break;
         case OP_JSRw:
-            offset -= sizeof(uint32_t) - 1;
-            offset += *(int32_t*)args[0];
+            offset = *(int32_t*)args[0];
+            offset -= sizeof(int32_t) - 1;
             break;
     }
 
     jvm_value_t addr = {EJVT_CODEADDR};
-    *(uint32_t*)addr.value = offset - 2;
+    *(int32_t*)addr.value = frame->pc + (offset - 2);
 
     frame->stack.stack[frame->stack.sp++] = addr;
 
@@ -218,7 +219,7 @@ jvm_error_t jvm_ret_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_
     jvm_value_t addr = frame->locals[*(uint8_t*)args[0]];
 
     FAIL_SET_JUMP(addr.type == EJVT_CODEADDR,err,JVM_OPCODE_INVALID,exit);
-    frame->pc = (*(uint32_t*)addr.value) - 1;
+    frame->pc = *(uint32_t*)addr.value - 1;
 
 exit:
     return err;
@@ -286,6 +287,86 @@ jvm_error_t jvm_ificmp_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlin
             if(value1 >= value2)
                 do_branch = true;
             break;
+
+        default: break;
+    }
+
+    if(do_branch)
+        frame->pc += offset;
+    
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_ifnull_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    int32_t offset = -3 + *(uint16_t*)args[0]; //Magic value to skip frame->pc properly. Same as goto
+
+    void* value = *(void**)frame->stack.stack[--frame->stack.sp].value;
+
+    bool do_branch = false;
+    switch(opcode){
+        case OP_IFnull:
+            if(value == NULL)
+                do_branch = true;
+            break;
+        
+        case OP_IFnonnull:
+            if(value)
+                do_branch = true;
+            break;
+
+        default: break;
+    }
+
+    if(do_branch)
+        frame->pc += offset;
+    
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_ifi_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    int32_t offset = -3 + *(uint16_t*)args[0]; //Magic value to skip frame->pc properly. Same as goto
+
+    int32_t value = *(int32_t*)frame->stack.stack[--frame->stack.sp].value;
+
+    bool do_branch = false;
+    switch(opcode){
+        case OP_IFeq:
+            if(value == 0)
+                do_branch = true;
+        break;
+
+        case OP_IFne:
+            if(value != 0)
+                do_branch = true;
+        break;
+
+        case OP_IFlt:
+            if(value < 0)
+                do_branch = true;
+        break;
+
+        case OP_IFle:
+            if(value <= 0)
+                do_branch = true;
+        break;
+
+        case OP_IFgt:
+            if(value > 0)
+                do_branch = true;
+        break;
+
+        case OP_IFge:
+            if(value >= 0)
+                do_branch = true;
+        break;
 
         default: break;
     }
@@ -401,6 +482,90 @@ exit:
     return err;
 }
 
+jvm_error_t jvm_lstore_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    unsigned local_index = 0;
+
+    switch(opcode){
+        case OP_LSTORE:
+            local_index = *(uint8_t*)args[0];
+            break;
+        case OP_LSTORE1:
+            local_index = 1;
+            break;
+        case OP_LSTORE2:
+            local_index = 2;
+            break;
+        case OP_LSTORE3:
+            local_index = 3;
+            break;
+
+        default: break;
+    }
+    FAIL_SET_JUMP(local_index < frame->method->frame_descriptor.locals_count,err,JVM_OPCODE_INVALID,exit);
+
+    frame->locals[local_index] = frame->stack.stack[--frame->stack.sp];
+exit:
+    return err;
+}
+
+jvm_error_t jvm_fstore_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    unsigned local_index = 0;
+
+    switch(opcode){
+        case OP_FSTORE:
+            local_index = *(uint8_t*)args[0];
+            break;
+        case OP_FSTORE1:
+            local_index = 1;
+            break;
+        case OP_FSTORE2:
+            local_index = 2;
+            break;
+        case OP_FSTORE3:
+            local_index = 3;
+            break;
+
+        default: break;
+    }
+    FAIL_SET_JUMP(local_index < frame->method->frame_descriptor.locals_count,err,JVM_OPCODE_INVALID,exit);
+
+    frame->locals[local_index] = frame->stack.stack[--frame->stack.sp];
+exit:
+    return err;
+}
+
+jvm_error_t jvm_dstore_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    unsigned local_index = 0;
+
+    switch(opcode){
+        case OP_DSTORE:
+            local_index = *(uint8_t*)args[0];
+            break;
+        case OP_DSTORE1:
+            local_index = 1;
+            break;
+        case OP_DSTORE2:
+            local_index = 2;
+            break;
+        case OP_DSTORE3:
+            local_index = 3;
+            break;
+
+        default: break;
+    }
+    FAIL_SET_JUMP(local_index < frame->method->frame_descriptor.locals_count,err,JVM_OPCODE_INVALID,exit);
+
+    frame->locals[local_index] = frame->stack.stack[--frame->stack.sp];
+exit:
+    return err;
+}
+
 jvm_error_t jvm_astore_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
     jvm_error_t err = JVM_OK;
 
@@ -425,25 +590,6 @@ jvm_error_t jvm_astore_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlin
     FAIL_SET_JUMP(local_index < frame->method->frame_descriptor.locals_count,err,JVM_OPCODE_INVALID,exit);
 
     frame->locals[local_index] = frame->stack.stack[--frame->stack.sp];
-exit:
-    return err;
-}
-
-jvm_error_t jvm_bastore_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
-    jvm_error_t err = JVM_OK;
-
-    jvm_value_t value = frame->stack.stack[--frame->stack.sp];
-    uint32_t index = *(uint32_t*)frame->stack.stack[--frame->stack.sp].value;
-
-    objectmanager_object_t* object = *(void**)frame->stack.stack[--frame->stack.sp].value;
-    FAIL_SET_JUMP(object,err,JVM_UNKNOWN,exit);
-
-    objectmanager_array_object_t* array = objectmanager_get_array_object_info(object);
-    FAIL_SET_JUMP(array,err,JVM_UNKNOWN,exit);
-
-    FAIL_SET_JUMP(index < array->count,err,JVM_ARRAY_OUTOFBOUNDS,exit);
-    array->elements[index] = value;
-
 exit:
     return err;
 }
@@ -541,6 +687,93 @@ exit:
     return err;
 }
 
+jvm_error_t jvm_lload_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    unsigned local_index = 0;
+
+    switch(opcode){
+        case OP_LLOAD:
+            local_index = *(uint8_t*)args[0];
+            break;
+        case OP_LLOAD1:
+            local_index = 1;
+            break;
+        case OP_LLOAD2:
+            local_index = 2;
+            break;
+        case OP_LLOAD3:
+            local_index = 3;
+            break;
+
+        default: break;
+    }
+    FAIL_SET_JUMP(local_index < frame->method->frame_descriptor.locals_count,err,JVM_OPCODE_INVALID,exit);
+
+    frame->stack.stack[frame->stack.sp++] = frame->locals[local_index];
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_fload_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    unsigned local_index = 0;
+
+    switch(opcode){
+        case OP_FLOAD:
+            local_index = *(uint8_t*)args[0];
+            break;
+        case OP_FLOAD1:
+            local_index = 1;
+            break;
+        case OP_FLOAD2:
+            local_index = 2;
+            break;
+        case OP_FLOAD3:
+            local_index = 3;
+            break;
+
+        default: break;
+    }
+    FAIL_SET_JUMP(local_index < frame->method->frame_descriptor.locals_count,err,JVM_OPCODE_INVALID,exit);
+
+    frame->stack.stack[frame->stack.sp++] = frame->locals[local_index];
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_dload_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    unsigned local_index = 0;
+
+    switch(opcode){
+        case OP_DLOAD:
+            local_index = *(uint8_t*)args[0];
+            break;
+        case OP_DLOAD1:
+            local_index = 1;
+            break;
+        case OP_DLOAD2:
+            local_index = 2;
+            break;
+        case OP_DLOAD3:
+            local_index = 3;
+            break;
+
+        default: break;
+    }
+    FAIL_SET_JUMP(local_index < frame->method->frame_descriptor.locals_count,err,JVM_OPCODE_INVALID,exit);
+
+    frame->stack.stack[frame->stack.sp++] = frame->locals[local_index];
+
+exit:
+    return err;
+}
+
 jvm_error_t jvm_aload_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
     jvm_error_t err = JVM_OK;
 
@@ -625,6 +858,148 @@ jvm_error_t jvm_mul_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
             break;
         case OP_DMUL:
             *(double*)output.value = *(double*)value1.value * *(double*)value2.value;
+            output.type = EJVT_DOUBLE;
+            break;
+
+        default: break;
+    }
+    frame->stack.stack[frame->stack.sp++] = output;
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_sub_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+
+    jvm_value_t output = {0};
+    switch(opcode){
+        case OP_ISUB:
+            *(int32_t*)output.value = *(int32_t*)value1.value - *(int32_t*)value2.value;
+            output.type = EJVT_INT;
+            break;
+        case OP_LSUB:
+            *(int64_t*)output.value = *(int64_t*)value1.value - *(int64_t*)value2.value;
+            output.type = EJVT_LONG;
+            break;
+        case OP_FSUB:
+            *(float*)output.value = *(float*)value1.value - *(float*)value2.value;
+            output.type = EJVT_FLOAT;
+            break;
+        case OP_DSUB:
+            *(double*)output.value = *(double*)value1.value - *(double*)value2.value;
+            output.type = EJVT_DOUBLE;
+            break;
+
+        default: break;
+    }
+    frame->stack.stack[frame->stack.sp++] = output;
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_and_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+
+    jvm_value_t output = {0};
+    switch(opcode){
+        case OP_IADD:
+            *(int32_t*)output.value = *(int32_t*)value1.value & *(int32_t*)value2.value;
+            output.type = EJVT_INT;
+            break;
+        case OP_LAND:
+            *(int64_t*)output.value = *(int64_t*)value1.value & *(int64_t*)value2.value;
+            output.type = EJVT_LONG;
+            break;
+
+        default: break;
+    }
+    frame->stack.stack[frame->stack.sp++] = output;
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_or_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+
+    jvm_value_t output = {0};
+    switch(opcode){
+        case OP_IOR:
+            *(int32_t*)output.value = *(int32_t*)value1.value | *(int32_t*)value2.value;
+            output.type = EJVT_INT;
+            break;
+        case OP_LOR:
+            *(int64_t*)output.value = *(int64_t*)value1.value | *(int64_t*)value2.value;
+            output.type = EJVT_LONG;
+            break;
+
+        default: break;
+    }
+    frame->stack.stack[frame->stack.sp++] = output;
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_xor_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+
+    jvm_value_t output = {0};
+    switch(opcode){
+        case OP_IXOR:
+            *(int32_t*)output.value = *(int32_t*)value1.value ^ *(int32_t*)value2.value;
+            output.type = EJVT_INT;
+            break;
+        case OP_LXOR:
+            *(int64_t*)output.value = *(int64_t*)value1.value ^ *(int64_t*)value2.value;
+            output.type = EJVT_LONG;
+            break;
+
+        default: break;
+    }
+    frame->stack.stack[frame->stack.sp++] = output;
+
+exit:
+    return err;
+}
+
+
+jvm_error_t jvm_div_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+
+    jvm_value_t output = {0};
+    switch(opcode){
+        case OP_IDIV:
+            *(int32_t*)output.value = *(int32_t*)value1.value / *(int32_t*)value2.value;
+            output.type = EJVT_INT;
+            break;
+        case OP_LDIV:
+            *(int64_t*)output.value = *(int64_t*)value1.value / *(int64_t*)value2.value;
+            output.type = EJVT_LONG;
+            break;
+        case OP_FDIV:
+            *(float*)output.value = *(float*)value1.value / *(float*)value2.value;
+            output.type = EJVT_FLOAT;
+            break;
+        case OP_DDIV:
+            *(double*)output.value = *(double*)value1.value / *(double*)value2.value;
             output.type = EJVT_DOUBLE;
             break;
 
@@ -856,6 +1231,319 @@ jvm_error_t jvm_aconstnull(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_
     uint16_t sp = frame->stack.sp++;
     frame->stack.stack[sp].type = EJVT_REFERENCE;
     *(void**)frame->stack.stack[sp].value = NULL;
+
+    return JVM_OK;
+}
+
+jvm_error_t jvm_arrayload_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    uint32_t index = *(uint32_t*)frame->stack.stack[--frame->stack.sp].value;
+    objectmanager_object_t* array_obj = *(void**)frame->stack.stack[--frame->stack.sp].value;
+
+    FAIL_SET_JUMP(array_obj,err,JVM_OPPARAM_INVALID,exit);
+    FAIL_SET_JUMP(array_obj->type == EJOMOT_ARRAY,err,JVM_OPPARAM_INVALID,exit);
+
+    objectmanager_array_object_t* array = objectmanager_get_array_object_info(array_obj);
+    FAIL_SET_JUMP(index < array->count, err,JVM_OPPARAM_INVALID,exit);
+
+    frame->stack.stack[frame->stack.sp++] = array->elements[index];
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_arraystore_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t to_store = frame->stack.stack[--frame->stack.sp];
+    uint32_t index = *(uint32_t*)frame->stack.stack[--frame->stack.sp].value;
+    objectmanager_object_t* array_obj = *(void**)frame->stack.stack[--frame->stack.sp].value;
+
+    FAIL_SET_JUMP(array_obj,err,JVM_OPPARAM_INVALID,exit);
+    FAIL_SET_JUMP(array_obj->type == EJOMOT_ARRAY,err,JVM_OPPARAM_INVALID,exit);
+
+    objectmanager_array_object_t* array = objectmanager_get_array_object_info(array_obj);
+    FAIL_SET_JUMP(index < array->count, err,JVM_OPPARAM_INVALID,exit);
+
+    array->elements[index] = to_store;
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_dcmp_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+
+    double Cvalue2 = *(double*)value2.value;
+    double Cvalue1 = *(double*)value1.value;
+
+    int Cresult = 1;
+    switch(opcode){
+        default: break;
+
+        case OP_DCMPG:
+            if(Cvalue1 > Cvalue2) Cresult = 1;
+            if(Cvalue1 == Cvalue2) Cresult = 0;
+            if(Cvalue1 < Cvalue2) Cresult = -1;
+            if(Cvalue1 == NAN || Cvalue2 == NAN) Cresult = 1;
+        break;
+
+        case OP_DCMPL:
+            if(Cvalue1 > Cvalue2) Cresult = 1;
+            if(Cvalue1 == Cvalue2) Cresult = 0;
+            if(Cvalue1 < Cvalue2) Cresult = -1;
+            if(Cvalue1 == NAN || Cvalue2 == NAN) Cresult = -1;
+        break;
+    }
+
+    jvm_value_t result = {EJVT_INT};
+    *(int32_t*)result.value = Cresult;
+
+    frame->stack.stack[frame->stack.sp++] = result;
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_fcmp_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+
+    float Cvalue2 = *(float*)value2.value;
+    float Cvalue1 = *(float*)value1.value;
+
+    int Cresult = 1;
+    switch(opcode){
+        default: break;
+
+        case OP_FCMPG:
+            if(Cvalue1 > Cvalue2) Cresult = 1;
+            if(Cvalue1 == Cvalue2) Cresult = 0;
+            if(Cvalue1 < Cvalue2) Cresult = -1;
+            if(Cvalue1 == NAN || Cvalue2 == NAN) Cresult = 1;
+        break;
+
+        case OP_FCMPL:
+            if(Cvalue1 > Cvalue2) Cresult = 1;
+            if(Cvalue1 == Cvalue2) Cresult = 0;
+            if(Cvalue1 < Cvalue2) Cresult = -1;
+            if(Cvalue1 == NAN || Cvalue2 == NAN) Cresult = -1;
+        break;
+    }
+
+    jvm_value_t result = {EJVT_INT};
+    *(int32_t*)result.value = Cresult;
+
+    frame->stack.stack[frame->stack.sp++] = result;
+
+exit:
+    return err;
+}
+
+jvm_error_t jvm_neg_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_value_t* value = &frame->stack.stack[frame->stack.sp - 1];
+
+    switch(opcode){
+        default: break;
+        case OP_INEG:
+            *(int32_t*)value->value = -*(int32_t*)value->value;
+        break;
+
+        case OP_LNEG:
+            *(int64_t*)value->value = -*(int64_t*)value->value;
+        break;
+
+        case OP_FNEG:
+            *(float*)value->value = -*(float*)value->value;
+        break;
+
+        case OP_DNEG:
+            *(double*)value->value = -*(double*)value->value;
+        break;
+    }
+
+    return JVM_OK;
+}
+
+jvm_error_t jvm_instanceof_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    objectmanager_object_t* object = *(void**)frame->stack.stack[--frame->stack.sp].value;
+    classlinker_class_t* class = ((classlinker_normalclass_t*)frame->method->class)->constant_pool.constants[*(uint16_t*)args[0] - 1].constant_value;
+
+    jvm_value_t result = {EJVT_INT};
+
+    if(object == NULL){
+        if(object->type == EJOMOT_CLASS && class->type == EClass){
+            *(int32_t*)result.value = objectmanager_class_object_is_compatible_to(objectmanager_get_class_object_info(object),class);
+        }
+
+        if(object->type == EJOMOT_ARRAY && class->type == Earray){
+            TODO("Better type checking for arrays");
+            *(int32_t*)result.value = 1;
+        }
+    }
+
+exit:
+    frame->stack.stack[frame->stack.sp++] = result;
+    return JVM_OK;
+}
+
+jvm_error_t jvm_rem_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+
+    jvm_value_t result = {0};
+    switch(opcode){
+        default: break;
+
+        case OP_FREM:{
+            result.type = EJVT_FLOAT;
+            *(float*)result.value = remainderf(*(float*)value1.value,*(float*)value2.value);
+        }
+        break;
+
+        case OP_DREM:{
+            result.type = EJVT_DOUBLE;
+            *(double*)result.value = remainder(*(double*)value1.value,*(double*)value2.value);
+        }
+        break;
+
+        case OP_IREM:{
+            result.type = EJVT_INT;
+            *(int32_t*)result.value = *(int32_t*)value1.value % *(int32_t*)value2.value;
+        }
+        break;
+
+        case OP_LREM:{
+            result.type = EJVT_LONG;
+            *(int64_t*)result.value = *(int64_t*)value1.value % *(int64_t*)value2.value;
+        }
+        break;        
+    }
+
+    frame->stack.stack[frame->stack.sp++] = result;
+exit:
+    return err;
+}
+
+jvm_error_t jvm_shl_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+
+    jvm_value_t result = {0};
+    switch(opcode){
+        default: break;
+        case OP_ISHL:{
+            result.type = EJVT_INT;
+            *(int32_t*)result.value = *(int32_t*)value1.value << *(int32_t*)value2.value;
+        }
+        break;
+
+        case OP_LSHL:{
+            result.type = EJVT_LONG;
+            *(int64_t*)result.value = *(int64_t*)value1.value << *(int64_t*)value2.value;
+        }
+        break;        
+    }
+
+    frame->stack.stack[frame->stack.sp++] = result;
+exit:
+    return err;
+}
+
+jvm_error_t jvm_shr_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+
+    jvm_value_t result = {0};
+    switch(opcode){
+        default: break;
+        case OP_ISHR:{
+            result.type = EJVT_INT;
+            *(int32_t*)result.value = *(int32_t*)value1.value >> *(int32_t*)value2.value;
+        }
+        break;
+
+        case OP_LSHR:{
+            result.type = EJVT_LONG;
+            *(int64_t*)result.value = *(int64_t*)value1.value >> *(int64_t*)value2.value;
+        }
+        break;        
+    }
+
+    frame->stack.stack[frame->stack.sp++] = result;
+exit:
+    return err;
+}
+
+jvm_error_t jvm_lcmp_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+
+    jvm_value_t result = {EJVT_INT};
+
+    if(*(int64_t*)value1.value > *(int64_t*)value2.value) *(int32_t*)result.value = 1;
+    if(*(int64_t*)value1.value == *(int64_t*)value2.value) *(int32_t*)result.value = 0;
+    if(*(int64_t*)value1.value < *(int64_t*)value2.value) *(int32_t*)result.value = -1;
+
+    frame->stack.stack[frame->stack.sp++] = result;
+exit:
+    return err;
+}
+
+jvm_error_t jvm_lconst_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_value_t result = {EJVT_LONG};
+
+    switch(opcode){
+        default: break;
+        case OP_LCONST1:
+            *(int64_t*)result.value = 1;
+            break;
+    }
+
+    frame->stack.stack[frame->stack.sp++] = result;
+    return JVM_OK;
+}
+
+jvm_error_t jvm_monitor_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+    objectmanager_object_t* object = *(void**)frame->stack.stack[--frame->stack.sp].value;
+    FAIL_SET_JUMP(object,err,JVM_OPPARAM_INVALID,exit);
+
+    switch(opcode){
+        default: break;
+        case OP_MONITORENTER:
+            objectmanager_object_lock(object);
+            break;
+
+        case OP_MONITOREXIT:
+            objectmanager_object_unlock(object);
+            break;
+
+    }
+exit:
+    return err;
+}
+
+jvm_error_t jvm_swap_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_value_t value1 = frame->stack.stack[--frame->stack.sp];
+    jvm_value_t value2 = frame->stack.stack[--frame->stack.sp];
+
+    frame->stack.stack[frame->stack.sp++] = value1;
+    frame->stack.stack[frame->stack.sp++] = value2;
 
     return JVM_OK;
 }

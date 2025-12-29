@@ -335,3 +335,7 @@ classloader_error_t classloader_load_class(classloader_instance_t* instance, fil
 exit:
     return err;
 }
+
+void classloader_destroy(classloader_instance_t* instance){
+    arena_free(instance->loader_arena);
+}

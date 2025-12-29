@@ -520,20 +520,7 @@ static jvm_error_t object_equals(jvm_frame_t* frame){
         .value = {0},
     };
 
-    if(compare_to && self->type == compare_to->type){
-
-        void* copy_buffer = alloca(self->size > compare_to->size ? self->size : compare_to->size); //Copying into this buffer to ensure that pointers are the same
-        objectmanager_object_clone_into(self,NULL,copy_buffer);
-
-        int self_hash = h31_hash((char*)copy_buffer, self->size);
-
-        objectmanager_object_clone_into(compare_to, NULL,copy_buffer);
-        int cmp_hash = h31_hash((char*)copy_buffer,compare_to->size);
-
-        *(bool*)return_value.value = self_hash == cmp_hash;
-    }
-
-    frame->previous_frame->stack.stack[frame->previous_frame->stack.sp++] = return_value;
+    *(uint32_t*)frame->previous_frame->stack.stack[frame->previous_frame->stack.sp++].value = self == compare_to;
 
     return JVM_OK;
 }

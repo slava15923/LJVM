@@ -1360,23 +1360,35 @@ jvm_error_t jvm_neg_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
 
 jvm_error_t jvm_instanceof_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
     objectmanager_object_t* object = *(void**)frame->stack.stack[--frame->stack.sp].value;
-    classlinker_class_t* class = ((classlinker_normalclass_t*)frame->method->class)->constant_pool.constants[*(uint16_t*)args[0] - 1].constant_value;
+    classlinker_class_t* class = ((classlinker_normalclass_t*)frame->method->class->info)->constant_pool.constants[(*(uint16_t*)args[0]) - 1].constant_value;
 
     jvm_value_t result = {EJVT_INT};
 
-    if(object == NULL){
-        if(object->type == EJOMOT_CLASS && class->type == EClass){
-            *(int32_t*)result.value = objectmanager_class_object_is_compatible_to(objectmanager_get_class_object_info(object),class);
-        }
-
+    if(object){
         if(object->type == EJOMOT_ARRAY && class->type == Earray){
-            TODO("Better type checking for arrays");
+            TODO("type checking for arrays");
             *(int32_t*)result.value = 1;
-        }
+        } else *(int32_t*)result.value = objectmanager_class_object_is_compatible_to(objectmanager_get_class_object_info(object),class);
     }
 
     frame->stack.stack[frame->stack.sp++] = result;
     return JVM_OK;
+}
+
+jvm_error_t jvm_checkcast_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    objectmanager_object_t* object = *(void**)frame->stack.stack[frame->stack.sp - 1].value;
+    classlinker_class_t* class = ((classlinker_normalclass_t*)frame->method->class->info)->constant_pool.constants[(*(uint16_t*)args[0]) - 1].constant_value;
+
+    FAIL_SET_JUMP(object,err,JVM_OPPARAM_INVALID,exit);
+    
+    if(!objectmanager_class_object_is_compatible_to(objectmanager_get_class_object_info(object),class)){
+        assert(!"Throw exception here.");
+    }
+
+exit:
+    return err;
 }
 
 jvm_error_t jvm_rem_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
@@ -1544,7 +1556,7 @@ jvm_error_t jvm_arraylength_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, clas
     FAIL_SET_JUMP(array,err,JVM_OPPARAM_INVALID,exit);
 
     uint16_t sp = frame->stack.sp++;
-    
+
     frame->stack.stack[sp].type = EJVT_INT;
     *(uint32_t*)frame->stack.stack[sp].value = array->count;
 

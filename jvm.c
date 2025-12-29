@@ -227,6 +227,7 @@ static jvm_opcode_executor_t opcode_executors[211] = {
     [OP_DNEG] = {0,NULL,jvm_neg_opcodes},
 
     [OP_INSTANCEOF] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_instanceof_opcode},
+    [OP_CHECKCAST] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_checkcast_opcode},
 
     [OP_IREM] = {0,NULL,jvm_rem_opcodes},
     [OP_LREM] = {0,NULL,jvm_rem_opcodes},

@@ -744,12 +744,16 @@ classlinker_field_t* classlinker_find_staticfield(jvm_frame_t* frame, classlinke
 }
 
 bool classlinker_is_classes_compatible(classlinker_class_t* class, classlinker_class_t* compatible_to){
+    if(class == compatible_to || compatible_to->parent == NULL) return true;
+
     for(classlinker_class_t* cur = class; cur; cur = cur->parent){
         if(compatible_to == cur)
             return true;
 
         for(unsigned i = 0; i < cur->implements_count; i++){
-            if(cur->implements[i] == class) return true; //Infinite recursion prevention. There may be more potential cases but that for later
+            if(cur->implements[i] == class || cur->implements[i] == cur) {
+                continue;
+            }
             
             if(classlinker_is_classes_compatible(cur->implements[i], compatible_to))
                 return true;

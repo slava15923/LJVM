@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.io.OutputStream;
 
 class private_fieldC implements Cloneable{
 	public int second_field = 322;
@@ -79,11 +80,12 @@ class test_app{
 			System.out.print(' ');
 		}
 		System.out.println();
+		System.out.println(byte_array instanceof java.lang.Object);
+		System.out.println(C instanceof java.lang.Object);
+		System.out.println(no instanceof private_fieldC);
+		System.out.println(s instanceof java.lang.Object);
+		System.out.println(no instanceof java.lang.String);
 
 		System.out.println(byte_array.length);
-
-		while(true){
-			System.out.println(new Object());
-		}
 	}
 }

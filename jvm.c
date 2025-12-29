@@ -258,8 +258,6 @@ static jvm_opcode_executor_t opcode_executors[211] = {
 #define JVM_EXECUTOR_RESERVED_MEMORY 512 * 1024
 
 jvm_instance_t* jvm_new(classlinker_instance_t* linker, uint32_t heap_size){
-    TODO("GC based memory manager");
-
     Arena* arena = arena_new_dynamic(sizeof(jvm_instance_t*) + JVM_EXECUTOR_RESERVED_MEMORY);
     jvm_instance_t* instance = arena_alloc(arena,sizeof(*instance));
     assert(instance);

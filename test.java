@@ -66,6 +66,7 @@ class test_app{
 
 		Object no = new Object();
 		System.out.println(no.equals(C));
+		System.out.println(no.equals(new Object()));
 		System.out.println(no.hashCode());
 
 		byte[] byte_array = new byte[64];

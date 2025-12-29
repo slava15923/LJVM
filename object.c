@@ -31,7 +31,7 @@ jvm_error_t objectmanager_init_heap(jvm_instance_t* jvm, uint32_t heap_size){
     jvm->heap.heap_arena = arena_new_dynamic(heap_size);
     assert(jvm->heap.heap_arena);
 
-    unsigned reserved = nextby(heap_size * 0.25, sizeof(objectmanager_object_t));
+    unsigned reserved = nextby(heap_size * 0.0625, sizeof(objectmanager_object_t));
     unsigned gc_heap_size = heap_size - reserved;
 
     jvm->heap.gc_heap = arena_new_static(arena_alloc(jvm->heap.heap_arena,gc_heap_size), gc_heap_size);

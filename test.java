@@ -81,5 +81,9 @@ class test_app{
 		System.out.println();
 
 		System.out.println(byte_array.length);
+
+		while(true){
+			System.out.println(new Object());
+		}
 	}
 }

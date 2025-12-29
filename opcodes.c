@@ -1533,3 +1533,18 @@ jvm_error_t jvm_swap_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker
 
     return JVM_OK;
 }
+
+jvm_error_t jvm_arraylength_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    objectmanager_object_t* obj = *(void**)frame->stack.stack[--frame->stack.sp].value;
+    FAIL_SET_JUMP(obj,err,JVM_OPPARAM_INVALID,exit);
+
+    objectmanager_array_object_t* array = objectmanager_get_array_object_info(obj);
+    FAIL_SET_JUMP(array,err,JVM_OPPARAM_INVALID,exit);
+
+    *(uint32_t*)frame->stack.stack[frame->stack.sp++].value = array->count;
+
+exit:
+    return err;
+}

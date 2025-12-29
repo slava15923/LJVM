@@ -282,3 +282,5 @@ jvm_error_t jvm_dstore_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlin
 
 jvm_error_t jvm_monitor_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]);
 jvm_error_t jvm_swap_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]);
+
+jvm_error_t jvm_arraylength_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]);

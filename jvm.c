@@ -247,6 +247,7 @@ static jvm_opcode_executor_t opcode_executors[211] = {
     [OP_MONITOREXIT] = {0,NULL,jvm_monitor_opcodes},
 
     [OP_SWAP] = {0,NULL,jvm_swap_opcode},
+    [OP_ARRAYLENGTH] = {0,NULL,jvm_arraylength_opcode},
 
     [OP_INVOKESTATIC] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_invokestatic_opcode},
     [OP_INVOKESPECIAL] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_invokespecial_opcode},

@@ -79,5 +79,7 @@ class test_app{
 			System.out.print(' ');
 		}
 		System.out.println();
+
+		System.out.println(byte_array.length);
 	}
 }

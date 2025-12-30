@@ -329,19 +329,29 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
 
     classlinker_error_t err = CLASSLINKER_OK;
 
-    unsigned symmap_size = loader->classes_stats.classes_referenced + NUM_BUILTINS;
-    classlinker_symbol_map_t symbol_map[symmap_size];
-    memset(&symbol_map,0,symmap_size * sizeof(symbol_map[0]));
-
+    unsigned symmap_size = loader->classes_stats.classes_referenced;
     classlinker_class_t* linkable_class = NULL;
-    unsigned symmap_i = 0;
+
+    //Step -2: counting preloaded classes
+    list_for_each_entry(linkable_class,&linker->loaded_classes,list){
+        symmap_size++;
+        if(linkable_class->parent){
+            char* parent_name = linkable_class->parent->this_name;
+            linkable_class->parent = classlinker_find_class(linker, parent_name);
+        }
+    }
+
+    //classlinker_symbol_map_t symbol_map[symmap_size];
+    //memset(&symbol_map,0,symmap_size * sizeof(symbol_map[0]));
+
+    /*unsigned symmap_i = 0;
     //Step -1: adding preloaded classes
     list_for_each_entry(linkable_class,&linker->loaded_classes,list){
         unsigned csymmap_i = symmap_i++;
 
         symbol_map[csymmap_i].value = linkable_class;
         symbol_map[csymmap_i].symbol = linkable_class->this_name;
-    }
+    }*/
 
     //Step 0: creating and loading NON array classes
     classloader_class_t* class_inlink = NULL;
@@ -368,17 +378,17 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
         new_class->this_name = arena_strdup(linker->arena,this_name);
         new_class->raw_class = class_inlink;
 
-        unsigned csymmap_i = symmap_i++;
+        //unsigned csymmap_i = symmap_i++;
 
-        symbol_map[csymmap_i].symbol = new_class->this_name;
-        symbol_map[csymmap_i].value = new_class;
+        //symbol_map[csymmap_i].symbol = new_class->this_name;
+        //symbol_map[csymmap_i].value = new_class;
         //========================================
     }
 
     //Step 1: parent searching for executable classes
     list_for_each_entry(linkable_class, &linker->loaded_classes, list){
         if(linkable_class->parent == NULL && linkable_class->parent_name){ //Эх, сиротка :(
-            linkable_class->parent = get_in_symmap(symbol_map, symmap_size, linkable_class->parent_name);
+            linkable_class->parent = classlinker_find_class(linker,linkable_class->parent_name);
         }
         linkable_class->type = is_array(linkable_class->this_name);
 
@@ -411,7 +421,7 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
 
                     char* find_name = raw_class->constants[constant_class->name_index].data;
                     if(is_array(find_name) == EClass){
-                        classlinker_class_t* found = get_in_symmap(symbol_map, symmap_size, find_name);
+                        classlinker_class_t* found = classlinker_find_class(linker,find_name);
                         FAIL_SET_JUMP(found,err,CLASSLINKER_NOTFOUND,exit);
                         found->generation = found->parent ? found->parent->generation + 1 : 0;
 
@@ -425,7 +435,7 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
                         FAIL_SET_JUMP(array->this_name,err,CLASSLINKER_OOM,exit);
 
                         array->parent_name = raw_class->constants[raw_class->super_class].data;
-                        array->parent = get_in_symmap(symbol_map, symmap_size, array->parent_name);
+                        array->parent = classlinker_find_class(linker, array->parent_name);
 
                         array->generation = array->parent ? array->parent->generation + 1 : 0;
                         class_info->constant_pool.constants[i].constant_value = array;
@@ -442,7 +452,7 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
                     classloader_constant_class_t* class = raw_class->constants[ref->class_index].data;
                     char* class_name = raw_class->constants[class->name_index].data;
 
-                    new_ref->class = get_in_symmap(symbol_map, symmap_size, class_name);
+                    new_ref->class = classlinker_find_class(linker, class_name);
                     FAIL_SET_JUMP(new_ref->class,err,CLASSLINKER_NOTFOUND,exit);
 
                     classloader_constant_name_and_type_t* nameandtype = raw_class->constants[ref->name_and_type_index].data;
@@ -744,8 +754,6 @@ classlinker_field_t* classlinker_find_staticfield(jvm_frame_t* frame, classlinke
 }
 
 bool classlinker_is_classes_compatible(classlinker_class_t* class, classlinker_class_t* compatible_to){
-    if(class == compatible_to || compatible_to->parent == NULL) return true;
-
     for(classlinker_class_t* cur = class; cur; cur = cur->parent){
         if(compatible_to == cur)
             return true;

@@ -407,16 +407,14 @@ exit:
 jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_object){
     jvm_error_t err = JVM_UNKNOWN;
 
+    FAIL_SET_JUMP(exception_object,err,JVM_OPPARAM_INVALID,exit);
+
     classlinker_method_t* exception_handler = NULL;
     objectmanager_class_object_t* exception_cobject = objectmanager_get_class_object_info(exception_object);
 
-    FAIL_SET_JUMP(exception_cobject,err,JVM_OPCODE_INVALID,exit);
-
-    printf("\n===== exception stack trace ====\n");
+    FAIL_SET_JUMP(exception_cobject,err,JVM_OPPARAM_INVALID,exit);
     for(jvm_frame_t* cur = frame; cur; cur = cur->previous_frame){
         classlinker_method_t* cur_method = cur->method;
-        printf("%s:   %s/%s():%zd\n",(cur->method->flags & ACC_NATIVE) == ACC_NATIVE ? "native" : "bytecode", 
-                                                                    cur->method->class->this_name,cur->method->name,(ssize_t)cur->pc);
 
         if((cur_method->flags & ACC_NATIVE) != ACC_NATIVE){
             classlinker_bytecode_t* bytecode = cur_method->userctx;
@@ -430,6 +428,7 @@ jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_obje
                     cur->stack.stack[sp].type = EJVT_REFERENCE;
                     *(void**)cur->stack.stack[sp].value = exception_object;
 
+                    err = JVM_OK;
                     goto exit;
                 }
             }
@@ -447,7 +446,6 @@ jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_obje
     }
 
 exit:
-    printf("===== exception trace end   ====\n");
     return err;
 }
 

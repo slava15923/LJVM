@@ -1,6 +1,5 @@
 #pragma once
 #include "arena.h"
-#include "class_linker.h"
 #include "list.h"
 #include "os_support.h"
 
@@ -38,6 +37,8 @@ typedef struct{
 
 typedef struct jvm_instance_t jvm_instance_t;
 typedef struct jvm_frame_t jvm_frame_t;
+typedef struct classlinker_method_t classlinker_method_t;
+typedef struct classlinker_instance_t classlinker_instance_t;
 typedef struct jvm_frame_t{
     jvm_instance_t* jvm;
 

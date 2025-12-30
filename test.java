@@ -45,6 +45,7 @@ class test_app{
 			expection_test();
 		} catch(IOException e){
 			System.out.println("\n ============= \nExpection test successful!\n ============= \n");
+			System.out.println(e.toString());
 		}
 
 		

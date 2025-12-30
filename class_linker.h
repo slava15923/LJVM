@@ -16,7 +16,7 @@ typedef enum{
 }classlinker_error_t;
 
 typedef struct classlinker_jni_list_t classlinker_jni_list_t;
-typedef struct{
+typedef struct classlinker_instance_t{
     Arena* arena;
 
     struct list_head loaded_classes;

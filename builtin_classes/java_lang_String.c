@@ -53,6 +53,7 @@ classlinker_normalclass_t java_lang_String_info = {
     .fields = (classlinker_field_t[]){
         {
             .name = "UTF8_string",
+            .value.type = EJVT_REFERENCE,
             },
     }
 };

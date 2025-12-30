@@ -54,5 +54,7 @@ void objectmanager_object_clone_into(objectmanager_object_t* object,struct list_
 objectmanager_class_object_t* objectmanager_get_class_object_info(objectmanager_object_t* object);
 objectmanager_array_object_t* objectmanager_get_array_object_info(objectmanager_object_t* object);
 
+uint32_t objectmanager_hash(objectmanager_object_t* object);
+
 void objectmanager_object_lock(objectmanager_object_t* object);
 void objectmanager_object_unlock(objectmanager_object_t* object);

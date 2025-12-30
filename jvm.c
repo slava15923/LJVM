@@ -406,6 +406,7 @@ exit:
 
 jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_object){
     jvm_error_t err = JVM_UNKNOWN;
+    jvm_lock(frame->jvm);
 
     FAIL_SET_JUMP(exception_object,err,JVM_OPPARAM_INVALID,exit);
 
@@ -446,6 +447,7 @@ jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* exception_obje
     }
 
 exit:
+    jvm_unlock(frame->jvm);
     return err;
 }
 

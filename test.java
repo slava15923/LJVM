@@ -46,6 +46,7 @@ class test_app{
 		} catch(IOException e){
 			System.out.println("\n ============= \nExpection test successful!\n ============= \n");
 			System.out.println(e.toString());
+			e.printStackTrace();
 		}
 
 		
@@ -70,6 +71,7 @@ class test_app{
 		System.out.println(no.equals(C));
 		System.out.println(no.equals(new Object()));
 		System.out.println(no.hashCode());
+		System.out.println(s.hashCode());
 
 		byte[] byte_array = new byte[64];
 
@@ -88,5 +90,13 @@ class test_app{
 		System.out.println(no instanceof java.lang.String);
 
 		System.out.println(byte_array.length);
+
+		try {
+			byte_array[20000] = ((byte)52);
+		}catch (ArrayIndexOutOfBoundsException e){
+			System.out.println("Out Of Bounds exception test successful!");
+		}
+
+		System.out.println("End of the road");
 	}
 }

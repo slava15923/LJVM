@@ -1,4 +1,5 @@
 #include "../jvm.h"
+#include "../jvm_internal.h"
 #include "../object.h"
 #include "../class_linker.h"
 
@@ -23,16 +24,6 @@ static jvm_error_t object_clone(jvm_frame_t* frame){
     return JVM_OK;
 }
 
-static uint32_t h31_hash(const char* s, size_t len)
-{
-    uint32_t h = 0;
-    while (len) {
-        h = 31 * h + *s++;
-        --len;
-    }
-    return h;
-}
-
 static jvm_error_t object_equals(jvm_frame_t* frame){
     objectmanager_object_t* self = *(void**)frame->locals[0].value;
     objectmanager_object_t* compare_to = *(void**)frame->locals[1].value;
@@ -46,23 +37,47 @@ static jvm_error_t object_equals(jvm_frame_t* frame){
 
     return JVM_OK;
 }
-
 static jvm_error_t object_hashcode(jvm_frame_t* frame){
     objectmanager_object_t* self = *(void**)frame->locals[0].value;
     jvm_value_t hashcode = {0};
 
-    TODO("Proper hashing. (Count only non reference fields!)");
-
     hashcode.type = EJVT_INT;
-    *(uint32_t*)hashcode.value = h31_hash((char*)self, self->size); //
+    *(uint32_t*)hashcode.value = objectmanager_hash(self);
 
     frame->previous_frame->stack.stack[frame->previous_frame->stack.sp++] = hashcode;
 
     return JVM_OK;
 }
 
+static jvm_error_t object_toString(jvm_frame_t* frame){
+    jvm_error_t err = JVM_OK;
+
+    objectmanager_object_t* self = *(void**)frame->locals[0].value;
+    jvm_value_t* retvalue = &frame->previous_frame->stack.stack[frame->previous_frame->stack.sp++];
+
+    retvalue->type = EJVT_REFERENCE;
+    *(void**)retvalue->value = objectmanager_new_class_object(frame, classlinker_find_class(frame->jvm->linker, "java/lang/String"));
+    objectmanager_object_t* string = *(void**)retvalue->value;
+
+    FAIL_SET_JUMP(string,err,JVM_OOM,exit);
+
+    char Cto_string[256] = {0};
+    snprintf(Cto_string,sizeof(Cto_string) - 1,"%s@%zu\n",objectmanager_get_class_object_info(self)->class->this_name,(size_t)objectmanager_hash(self));
+
+    classlinker_method_t* init = objectmanager_class_object_get_method(frame, objectmanager_get_class_object_info(string), "<init>", "(*)V");
+
+    jvm_value_t args[] = {{EJVT_REFERENCE},{EJVT_NATIVEPTR}};
+    *(void**)args[0].value = string;
+    *(void**)args[1].value = Cto_string;
+
+    err = jvm_invoke(frame->jvm,frame,init,2,args);
+
+exit:
+    return err;
+}
+
 classlinker_normalclass_t java_lang_Object_info = {
-    .methods_count = 6,
+    .methods_count = 7,
     .methods = (classlinker_method_t[]){
         {
             .name = "<clinit>",
@@ -100,6 +115,12 @@ classlinker_normalclass_t java_lang_Object_info = {
             .name = "hashCode",
             .raw_description = "()I",
             .fn = object_hashcode,
+            .flags = ACC_NATIVE,
+        },
+        {
+            .name = "toString",
+            .raw_description = "()Ljava/lang/String;",
+            .fn = object_toString,
             .flags = ACC_NATIVE,
         }
 

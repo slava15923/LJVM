@@ -12,8 +12,10 @@ extern classlinker_class_t java_lang_RuntimeException;
 extern classlinker_class_t java_lang_Class;
 extern classlinker_class_t java_io_IOException;
 extern classlinker_class_t java_lang_System;
-
-
+extern classlinker_class_t java_lang_ClassCastException;
+extern classlinker_class_t java_lang_NullPointerException;
+extern classlinker_class_t java_lang_ArrayIndexOutOfBoundsException;
+extern classlinker_class_t java_lang_NegativeArraySizeException;
 
 
 
@@ -23,6 +25,10 @@ classlinker_class_t* builtin_classes[] = {
     &java_lang_Throwable,
     &java_lang_Exception,
     &java_lang_RuntimeException,
+    &java_lang_ClassCastException,
+    &java_lang_NullPointerException,
+    &java_lang_ArrayIndexOutOfBoundsException,
+    &java_lang_NegativeArraySizeException,
     &java_lang_Class,
     &java_lang_String,
     &java_io_IOException,

@@ -452,6 +452,7 @@ void objectmanager_wakeup_gc(jvm_instance_t* jvm){
 
 objectmanager_object_t* objectmanager_new_class_object(jvm_frame_t* frame,
                                                        classlinker_class_t* class){
+    if(!class) return NULL;
 
     unsigned alloc_size = sizeof(objectmanager_object_t) + sizeof(objectmanager_class_object_t) + ((class->generation + 1) * sizeof(classlinker_field_t*));
     objectmanager_object_t* new_object = NULL;
@@ -601,6 +602,58 @@ void objectmanager_object_lock(objectmanager_object_t* object){
 }
 void objectmanager_object_unlock(objectmanager_object_t* object){
     
+}
+
+static uint32_t h31_hash(const char* s, size_t len)
+{
+    uint32_t h = 0;
+    while (len) {
+        h = 31 * h + *s++;
+        --len;
+    }
+    return h;
+}
+uint32_t objectmanager_hash(objectmanager_object_t* object){
+    uint32_t hash = 0;
+
+    switch(object->type){
+        case EJOMOT_CLASS:{
+            objectmanager_class_object_t* cobject = object->data;
+
+            for(classlinker_class_t* cur = cobject->class; cur; cur = cur->parent){
+                classlinker_normalclass_t* class_info = cur->info;
+                hash += h31_hash(cur->this_name, strlen(cur->this_name));
+
+                for(unsigned i = 0; i < class_info->fields_count; i++){
+                    classlinker_field_t* field = &cobject->fields[cur->generation][i];
+                    jvm_value_t* value = &field->value;
+
+                    if(value->type != EJVT_REFERENCE && value->type != EJVT_ARRAYDIM && value->type != EJVT_NATIVEPTR){
+                        hash += h31_hash((char*)value,sizeof(*value));
+                    } else if(value->type == EJVT_REFERENCE && *(void**)value->value){
+                        hash += objectmanager_hash(*(void**)value->value);
+                    }
+                }
+            }
+        }
+        break;
+
+        case EJOMOT_ARRAY:{
+            objectmanager_array_object_t* aobject = object->data;
+            for(unsigned i = 0; i < aobject->count; i++){
+                jvm_value_t* value = &aobject->elements[i];
+
+                if(value->type != EJVT_REFERENCE && value->type != EJVT_ARRAYDIM && value->type != EJVT_NATIVEPTR){
+                    hash += h31_hash((char*)value,sizeof(*value));
+                } else if(value->type == EJVT_REFERENCE && *(void**)value->value){
+                    hash += objectmanager_hash(*(void**)value->value);
+                }
+            }
+        }
+        break;
+    }
+
+    return hash;
 }
 
 bool objectmanager_class_object_is_compatible_to(objectmanager_class_object_t* class_object, classlinker_class_t* class){

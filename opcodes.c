@@ -1201,7 +1201,7 @@ jvm_error_t jvm_anewarray_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classl
 
     jvm_value_t count = frame->stack.stack[--frame->stack.sp];
 
-    FAIL_SET_JUMP(*(int32_t*)count.value >= 0, err, JVM_OPCODE_INVALID,exit);
+    FAIL_SET_JUMP(*(int32_t*)count.value >= 0, err, jvm_throw(frame,objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/NegativeArraySizeException"))),exit);
 
     jvm_value_t array = {EJVT_REFERENCE};
 
@@ -1230,11 +1230,11 @@ jvm_error_t jvm_arrayload_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classl
     uint32_t index = *(uint32_t*)frame->stack.stack[--frame->stack.sp].value;
     objectmanager_object_t* array_obj = *(void**)frame->stack.stack[--frame->stack.sp].value;
 
-    FAIL_SET_JUMP(array_obj,err,JVM_OPPARAM_INVALID,exit);
+    FAIL_SET_JUMP(array_obj,err,jvm_throw(frame,objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/NullPointerException"))),exit);
     FAIL_SET_JUMP(array_obj->type == EJOMOT_ARRAY,err,JVM_OPPARAM_INVALID,exit);
 
     objectmanager_array_object_t* array = objectmanager_get_array_object_info(array_obj);
-    FAIL_SET_JUMP(index < array->count, err,JVM_OPPARAM_INVALID,exit);
+    FAIL_SET_JUMP(index < array->count,err,jvm_throw(frame,objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/ArrayIndexOutOfBoundsException"))),exit);
 
     frame->stack.stack[frame->stack.sp++] = array->elements[index];
 
@@ -1249,11 +1249,11 @@ jvm_error_t jvm_arraystore_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, class
     uint32_t index = *(uint32_t*)frame->stack.stack[--frame->stack.sp].value;
     objectmanager_object_t* array_obj = *(void**)frame->stack.stack[--frame->stack.sp].value;
 
-    FAIL_SET_JUMP(array_obj,err,JVM_OPPARAM_INVALID,exit);
+    FAIL_SET_JUMP(array_obj,err,jvm_throw(frame,objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/NullPointerException"))),exit);
     FAIL_SET_JUMP(array_obj->type == EJOMOT_ARRAY,err,JVM_OPPARAM_INVALID,exit);
 
     objectmanager_array_object_t* array = objectmanager_get_array_object_info(array_obj);
-    FAIL_SET_JUMP(index < array->count, err,JVM_OPPARAM_INVALID,exit);
+    FAIL_SET_JUMP(index < array->count,err,jvm_throw(frame,objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/ArrayIndexOutOfBoundsException"))),exit);
 
     array->elements[index] = to_store;
 
@@ -1381,10 +1381,8 @@ jvm_error_t jvm_checkcast_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classl
     objectmanager_object_t* object = *(void**)frame->stack.stack[frame->stack.sp - 1].value;
     classlinker_class_t* class = ((classlinker_normalclass_t*)frame->method->class->info)->constant_pool.constants[(*(uint16_t*)args[0]) - 1].constant_value;
 
-    FAIL_SET_JUMP(object,err,JVM_OPPARAM_INVALID,exit);
-    
-    if(!objectmanager_class_object_is_compatible_to(objectmanager_get_class_object_info(object),class)){
-        assert(!"Throw exception here.");
+    if(object == NULL || !objectmanager_class_object_is_compatible_to(objectmanager_get_class_object_info(object),class)){
+        err = jvm_throw(frame,objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/ClassCastException")));
     }
 
 exit:

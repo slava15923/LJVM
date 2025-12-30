@@ -38,6 +38,15 @@ exit:
     return err;
 }
 
+char* java_to_Cstring(jvm_frame_t* frame, objectmanager_object_t* string, char* coutput, unsigned size){
+    objectmanager_array_object_t* utf8_array = objectmanager_get_array_object_info(*(void**)objectmanager_class_object_get_field(frame, objectmanager_get_class_object_info(string), "UTF8_string")->value.value);
+
+    for(unsigned i = 0; i < (size > utf8_array->count ? utf8_array->count : size); i++){
+        coutput[i] = *(char*)utf8_array->elements[i].value;
+    }
+
+    return coutput;
+}
 static jvm_error_t throwable_toString(jvm_frame_t* frame){
     jvm_error_t err = JVM_OK;
 
@@ -46,10 +55,11 @@ static jvm_error_t throwable_toString(jvm_frame_t* frame){
 
     jvm_value_t* return_value = &frame->previous_frame->stack.stack[frame->previous_frame->stack.sp++];
 
-    TODO("Java string to C string conversion and proper print in throwable toString()");
+    objectmanager_object_t* message = *(void**)objectmanager_class_object_get_field(frame, objectmanager_get_class_object_info(self), "exception_message")->value.value;
 
     char exception_string[256] = {0};
-    snprintf(exception_string,sizeof(exception_string) - 1,"%s",frame->method->class->this_name);
+    char exception_message[256] = {0};
+    snprintf(exception_string,sizeof(exception_string) - 1,"%s: %s",objectmanager_get_class_object_info(self)->class->this_name, message ? java_to_Cstring(frame,message,exception_message,sizeof(exception_message)) : "");
 
     return_value->type = EJVT_REFERENCE;
     *(void**)return_value->value = objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker,"java/lang/String")); 
@@ -85,11 +95,12 @@ exit:
 
 static jvm_error_t throwable_printStackTrace(jvm_frame_t* frame){
 
-    fprintf(stderr,"Exception stack trace! Exception: %s\n",frame->method->class->this_name);
+    fprintf(stderr,"\n====   Exception stack trace! Exception: %s   ====\n",frame->method->class->this_name);
 
-    for(jvm_frame_t* cur = frame; cur; cur = frame->previous_frame){
+    for(jvm_frame_t* cur = frame; cur; cur = cur->previous_frame){
         fprintf(stderr,"from: %s/%s():%zd\n",cur->method->class->this_name,cur->method->name,(ssize_t)cur->pc);
     }
+    fprintf(stderr,"=====   Stack trace end!   =====\n\n");
 
     return JVM_OK;
 }
@@ -112,6 +123,7 @@ classlinker_normalclass_t java_lang_Throwable_info = {
         {
             .name = "<init>",
             .raw_description = "(Ljava/lang/String;)V",
+            .frame_descriptor.arguments_count = 1,
             .fn = throwable_init_msg,
             .flags = ACC_NATIVE,
         },

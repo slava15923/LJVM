@@ -32,9 +32,9 @@ jvm_error_t objectmanager_init_heap(jvm_instance_t* jvm, uint32_t heap_size){
     assert(jvm->heap.heap_arena);
 
     unsigned reserved = nextby(heap_size * 0.0625, sizeof(objectmanager_object_t));
-    unsigned gc_heap_size = heap_size - reserved;
+    jvm->heap.gc_heapsize = heap_size - reserved;
 
-    jvm->heap.gc_heap = arena_new_static(arena_alloc(jvm->heap.heap_arena,gc_heap_size), gc_heap_size);
+    jvm->heap.gc_heap = arena_new_static(arena_alloc(jvm->heap.heap_arena,jvm->heap.gc_heapsize), jvm->heap.gc_heapsize);
     assert(jvm->heap.gc_heap);
 
     ((objectmanager_class_object_t*)array_JLOobject.data)->class = classlinker_find_class(jvm->linker, "java/lang/Object");
@@ -240,7 +240,7 @@ int ptr_cmp(const void* a, const void* b){
     return !(a == b);
 }
 
-void objectmanager_gc(jvm_instance_t* jvm){
+void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
     jvm_lock(jvm);
 
     struct list_head used_objects_list = LIST_HEAD_INIT(used_objects_list);
@@ -278,6 +278,26 @@ void objectmanager_gc(jvm_instance_t* jvm){
 
         objectmanager_scan_frame(current_thread->topmost_frame, &used_objects_list);
     }
+
+    size_t used_memory_ammount = 0;
+    objectmanager_gc_capsule_t* early_oom_count_cur = NULL;
+    list_for_each_entry(early_oom_count_cur, &used_objects_list, list){
+        used_memory_ammount += early_oom_count_cur->object->size;
+    }
+
+    if(jvm->heap.gc_heapsize - used_memory_ammount < required_memory){ //Not enough memory. Can give up already
+        objectmanager_gc_capsule_t* gc_capsule_destroy = NULL;
+        objectmanager_gc_capsule_t* gc_capsule_destroy_tmp = NULL;
+
+        list_for_each_entry(gc_capsule_destroy,&used_objects_list,list){
+            list_del(&gc_capsule_destroy->list);
+            arena_free_block(gc_capsule_destroy);
+        }
+
+        printf("%s: Early OOM, cannot find enough memory for allocation!\n",__PRETTY_FUNCTION__);
+        return;
+    }
+
     HASHMAP(void,objectmanager_object_t) pointer_fix_table = {0};
     HASHMAP(void,objectmanager_object_t) reverse_pointer_fix_table = {0};
     hashmap_init(&pointer_fix_table,hash_ptr,ptr_cmp);
@@ -319,6 +339,7 @@ void objectmanager_gc(jvm_instance_t* jvm){
 
     objectmanager_gc_capsule_t* gc_capsule = NULL;
     objectmanager_gc_capsule_t* gc_capsule_tmp = NULL;
+
     list_for_each_entry_safe(gc_capsule,gc_capsule_tmp,&used_objects_list,list){
         objectmanager_object_t* object = gc_capsule->object;
         objectmanager_object_t* new_object = malloc(object->size);
@@ -445,9 +466,9 @@ void objectmanager_gc(jvm_instance_t* jvm){
     jvm_unlock(jvm);
 }
 
-void objectmanager_wakeup_gc(jvm_instance_t* jvm){
+void objectmanager_wakeup_gc(jvm_instance_t* jvm, unsigned required_memory){
     //Currenly just call GC, freeRTOS and windows should wakeup GC thread, give him JVM, and call objectmanager_gc()
-    objectmanager_gc(jvm);
+    objectmanager_gc(jvm,required_memory);
 }
 
 objectmanager_object_t* objectmanager_new_class_object(jvm_frame_t* frame,
@@ -466,7 +487,7 @@ objectmanager_object_t* objectmanager_new_class_object(jvm_frame_t* frame,
     void* memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
     if(memory == NULL){
         jvm_unlock(frame->jvm);
-        objectmanager_wakeup_gc(frame->jvm);
+        objectmanager_wakeup_gc(frame->jvm,alloc_size);
 
         jvm_lock(frame->jvm);
         memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
@@ -515,7 +536,7 @@ objectmanager_object_t* objectmanager_new_array_object(jvm_frame_t* frame, jvm_v
     void* memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
     if(memory == NULL){
         jvm_unlock(frame->jvm);
-        objectmanager_wakeup_gc(frame->jvm);
+        objectmanager_wakeup_gc(frame->jvm,alloc_size);
         
         jvm_lock(frame->jvm);
         memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
@@ -587,7 +608,7 @@ classlinker_method_t* objectmanager_class_object_get_method(jvm_frame_t* frame, 
 objectmanager_object_t* objectmanager_object_clone(jvm_frame_t* frame, objectmanager_object_t* object){
     objectmanager_object_t* new_object = arena_alloc(frame->jvm->heap.gc_heap,object->size);
     if(new_object == NULL){
-        objectmanager_gc(frame->jvm);
+        objectmanager_gc(frame->jvm,object->size);
 
         new_object = arena_alloc(frame->jvm->heap.gc_heap,object->size);
         if(new_object == NULL) return NULL;

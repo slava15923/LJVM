@@ -349,7 +349,7 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
         objectmanager_object_clone_into(object, &copied_objects_list, new_object);
 
 
-        hashmap_insert(&pointer_fix_table,object,new_object,NULL);
+        //hashmap_insert(&pointer_fix_table,object,new_object,NULL);
         hashmap_insert(&reverse_pointer_fix_table,new_object,object,NULL);
 
         list_del(&gc_capsule->list);

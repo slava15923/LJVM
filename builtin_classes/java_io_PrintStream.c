@@ -54,7 +54,9 @@ static jvm_error_t printstream_printbool(jvm_frame_t* frame){
 
     char* Coutput_str = boolean != 0 ? "true" : "false";
 
-    objectmanager_object_t* byte_array_object = objectmanager_new_array_object(frame, EJVT_BYTE,strlen(Coutput_str));
+    frame->locals[2].type = EJVT_REFERENCE; //To tell GC we are using it
+    *(void**)frame->locals[2].value = objectmanager_new_array_object(frame, EJVT_BYTE,strlen(Coutput_str));
+    objectmanager_object_t* byte_array_object = *(void**)frame->locals[2].value;
     FAIL_SET_JUMP(byte_array_object,err,JVM_OOM,exit);
 
     objectmanager_array_object_t* byte_array = objectmanager_get_array_object_info(byte_array_object);
@@ -73,7 +75,9 @@ static jvm_error_t printstream_printchar(jvm_frame_t* frame){
 
     uint32_t character = *(uint32_t*)frame->locals[1].value;
 
-    objectmanager_object_t* byte_array_object = objectmanager_new_array_object(frame, EJVT_BYTE,1);
+    frame->locals[2].type = EJVT_REFERENCE; //To tell GC we are using it
+    *(void**)frame->locals[2].value = objectmanager_new_array_object(frame, EJVT_BYTE,1);
+    objectmanager_object_t* byte_array_object = *(void**)frame->locals[2].value;
     FAIL_SET_JUMP(byte_array_object,err,JVM_OOM,exit);
 
     objectmanager_array_object_t* byte_array = objectmanager_get_array_object_info(byte_array_object);
@@ -103,7 +107,9 @@ static jvm_error_t printstream_printdouble(jvm_frame_t* frame){
     char Coutput_str[33] = {0};
     snprintf(Coutput_str,sizeof(Coutput_str) - 1,"%lf",value);
 
-    objectmanager_object_t* byte_array_object = objectmanager_new_array_object(frame, EJVT_BYTE,strlen(Coutput_str));
+    frame->locals[2].type = EJVT_REFERENCE; //To tell GC we are using it
+    *(void**)frame->locals[2].value = objectmanager_new_array_object(frame, EJVT_BYTE,strlen(Coutput_str));
+    objectmanager_object_t* byte_array_object = *(void**)frame->locals[2].value;
     FAIL_SET_JUMP(byte_array_object,err,JVM_OOM,exit);
 
     objectmanager_array_object_t* byte_array = objectmanager_get_array_object_info(byte_array_object);
@@ -125,7 +131,9 @@ static jvm_error_t printstream_printfloat(jvm_frame_t* frame){
     char Coutput_str[33] = {0};
     snprintf(Coutput_str,sizeof(Coutput_str) - 1,"%f",value);
 
-    objectmanager_object_t* byte_array_object = objectmanager_new_array_object(frame, EJVT_BYTE,strlen(Coutput_str));
+    frame->locals[2].type = EJVT_REFERENCE; //To tell GC we are using it
+    *(void**)frame->locals[2].value = objectmanager_new_array_object(frame, EJVT_BYTE,strlen(Coutput_str));
+    objectmanager_object_t* byte_array_object = *(void**)frame->locals[2].value;
     FAIL_SET_JUMP(byte_array_object,err,JVM_OOM,exit);
 
     objectmanager_array_object_t* byte_array = objectmanager_get_array_object_info(byte_array_object);
@@ -147,7 +155,9 @@ static jvm_error_t printstream_printint(jvm_frame_t* frame){
     char Coutput_str[33] = {0};
     snprintf(Coutput_str,sizeof(Coutput_str) - 1,"%zu",value);
 
-    objectmanager_object_t* byte_array_object = objectmanager_new_array_object(frame, EJVT_BYTE,strlen(Coutput_str));
+    frame->locals[2].type = EJVT_REFERENCE; //To tell GC we are using it
+    *(void**)frame->locals[2].value = objectmanager_new_array_object(frame, EJVT_BYTE,strlen(Coutput_str));
+    objectmanager_object_t* byte_array_object = *(void**)frame->locals[2].value;
     FAIL_SET_JUMP(byte_array_object,err,JVM_OOM,exit);
 
     objectmanager_array_object_t* byte_array = objectmanager_get_array_object_info(byte_array_object);
@@ -169,7 +179,9 @@ static jvm_error_t printstream_printlong(jvm_frame_t* frame){
     char Coutput_str[33] = {0};
     snprintf(Coutput_str,sizeof(Coutput_str) - 1,"%ld",value);
 
-    objectmanager_object_t* byte_array_object = objectmanager_new_array_object(frame, EJVT_BYTE,strlen(Coutput_str));
+    frame->locals[2].type = EJVT_REFERENCE; //To tell GC we are using it
+    *(void**)frame->locals[2].value = objectmanager_new_array_object(frame, EJVT_BYTE,strlen(Coutput_str));
+    objectmanager_object_t* byte_array_object = *(void**)frame->locals[2].value;
     FAIL_SET_JUMP(byte_array_object,err,JVM_OOM,exit);
 
     objectmanager_array_object_t* byte_array = objectmanager_get_array_object_info(byte_array_object);
@@ -273,6 +285,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "print",
             .raw_description = "(Z)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printbool,
             .flags = ACC_NATIVE,
@@ -280,6 +293,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
             {
             .name = "print",
             .raw_description = "(C)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printchar,
             .flags = ACC_NATIVE,
@@ -287,6 +301,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "print",
             .raw_description = "([C)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printchararray,
             .flags = ACC_NATIVE,
@@ -294,6 +309,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "print",
             .raw_description = "(D)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printdouble,
             .flags = ACC_NATIVE,
@@ -301,6 +317,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "print",
             .raw_description = "(F)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printfloat,
             .flags = ACC_NATIVE,
@@ -308,6 +325,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "print",
             .raw_description = "(I)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printint,
             .flags = ACC_NATIVE,
@@ -315,6 +333,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "print",
             .raw_description = "(J)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printlong,
             .flags = ACC_NATIVE,
@@ -322,6 +341,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "print",
             .raw_description = "(Ljava/lang/Object;)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printobject,
             .flags = ACC_NATIVE,
@@ -329,6 +349,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "print",
             .raw_description = "(Ljava/lang/String;)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printstring,
             .flags = ACC_NATIVE,
@@ -338,13 +359,14 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "println",
             .raw_description = "()V",
-            .frame_descriptor.locals_count = 1,
+            .frame_descriptor.locals_count = 2,
             .fn = printstream_printlnvoid,
             .flags = ACC_NATIVE,
         },
         {
             .name = "println",
             .raw_description = "(Z)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
             .flags = ACC_NATIVE,
@@ -352,6 +374,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
             {
             .name = "println",
             .raw_description = "(C)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
             .flags = ACC_NATIVE,
@@ -359,6 +382,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "println",
             .raw_description = "([C)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
             .flags = ACC_NATIVE,
@@ -366,6 +390,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "println",
             .raw_description = "(D)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
             .flags = ACC_NATIVE,
@@ -373,6 +398,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "println",
             .raw_description = "(F)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
             .flags = ACC_NATIVE,
@@ -380,6 +406,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "println",
             .raw_description = "(I)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
             .flags = ACC_NATIVE,
@@ -387,6 +414,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "println",
             .raw_description = "(J)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
             .flags = ACC_NATIVE,
@@ -394,6 +422,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "println",
             .raw_description = "(Ljava/lang/Object;)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_printlnobject,
             .flags = ACC_NATIVE,
@@ -401,6 +430,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
         {
             .name = "println",
             .raw_description = "(Ljava/lang/String;)V",
+            .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
             .fn = printstream_println,
             .flags = ACC_NATIVE,

@@ -363,6 +363,8 @@ jvm_error_t jvm_invoke(jvm_instance_t* instance, jvm_frame_t* previous_frame, cl
         .locals = alloca(callable_method->frame_descriptor.locals_count * sizeof(*frame.locals)),
         .stack.stack = alloca(callable_method->frame_descriptor.stack_size * sizeof(*frame.stack.stack)),
     };
+    memset(frame.locals,0,callable_method->frame_descriptor.locals_count * sizeof(*frame.locals));
+    memset(frame.stack.stack,0,callable_method->frame_descriptor.stack_size * sizeof(*frame.stack.stack));
 
     if(jvm_current_thread){
         jvm_current_thread->topmost_frame = &frame;

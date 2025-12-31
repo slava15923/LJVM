@@ -1,9 +1,13 @@
 import java.io.IOException;
-import java.io.OutputStream;
 
 class private_fieldC implements Cloneable{
+	private_fieldC self;
 	public int second_field = 322;
 	private static int field = 52;
+
+	private_fieldC(){
+		self = this;
+	}
 	public static int getter(){
 		return field;
 	}
@@ -98,5 +102,18 @@ class test_app{
 		}
 
 		System.out.println("End of the road");
+
+		/*while(true){
+			private_fieldC newC = new private_fieldC();
+			System.out.print(newC);
+			System.out.print(' ');
+			System.out.print(newC.self);
+			System.out.print(' ');
+			System.out.print(newC.equals(newC.self));
+			System.out.print(' ');
+			//System.out.print(newC.hashCode());
+			System.out.println(' ');
+		}
+		*/
 	}
 }

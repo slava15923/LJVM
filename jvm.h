@@ -60,7 +60,6 @@ typedef struct{
 
 typedef struct{ //I hate C include system sometimes
     struct list_head object_list;
-    Arena* heap_arena;
     Arena* gc_heap;
     uint32_t gc_heapsize;
 }objectmanager_heap_t;

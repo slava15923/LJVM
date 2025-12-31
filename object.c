@@ -27,34 +27,17 @@ static objectmanager_object_t array_JLOobject = {
 
 jvm_error_t objectmanager_init_heap(jvm_instance_t* jvm, uint32_t heap_size){
     INIT_LIST_HEAD(&jvm->heap.object_list);
-    
-    jvm->heap.heap_arena = arena_new_dynamic(heap_size);
-    assert(jvm->heap.heap_arena);
 
     unsigned reserved = nextby(heap_size * 0.0625, sizeof(objectmanager_object_t));
     jvm->heap.gc_heapsize = heap_size - reserved;
 
-    jvm->heap.gc_heap = arena_new_static(arena_alloc(jvm->heap.heap_arena,jvm->heap.gc_heapsize), jvm->heap.gc_heapsize);
+    jvm->heap.gc_heap = arena_new_dynamic(jvm->heap.gc_heapsize);
     assert(jvm->heap.gc_heap);
 
     ((objectmanager_class_object_t*)array_JLOobject.data)->class = classlinker_find_class(jvm->linker, "java/lang/Object");
     assert(((objectmanager_class_object_t*)array_JLOobject.data)->class);
 
     return JVM_OK;
-}
-
-typedef struct{
-    struct list_head list;
-    objectmanager_object_t* object;
-}objectmanager_gc_capsule_t;
-
-static bool is_object_in_used_list(objectmanager_object_t* object, struct list_head* list){
-    objectmanager_gc_capsule_t* capsule = NULL;
-    list_for_each_entry(capsule,list,list){
-        if(capsule->object == object)
-            return true;
-    }
-    return false;
 }
 
 void objectmanager_object_clone_into(objectmanager_object_t* object,struct list_head* object_list, void* memory){
@@ -101,7 +84,6 @@ void objectmanager_object_clone_into(objectmanager_object_t* object,struct list_
     }
 }
 
-
 void objectmanager_scan_object(jvm_instance_t* jvm, objectmanager_object_t* object, struct list_head* output);
 void objectmanager_scan_classes(jvm_instance_t* jvm, struct list_head* output){
     classlinker_class_t* cur = NULL;
@@ -112,14 +94,9 @@ void objectmanager_scan_classes(jvm_instance_t* jvm, struct list_head* output){
                 jvm_value_t value = class_info->static_fields[i].value;
                 if(value.type == EJVT_REFERENCE){
                     objectmanager_object_t* object = *(void**)value.value;
-                    if(object && !is_object_in_used_list(object,output)){
-                        objectmanager_gc_capsule_t* object_capsule = arena_alloc(jvm->heap.heap_arena,sizeof(*object_capsule));
-                        assert(object_capsule);
-
-                        INIT_LIST_HEAD(&object_capsule->list);
-                        object_capsule->object = object;
-
-                        list_add(&object_capsule->list,output);
+                    if(object){
+                        list_del_init(&object->list);
+                        list_add(&object->list,output);
                         objectmanager_scan_object(jvm,object,output);                                
                     }
                 }
@@ -128,6 +105,10 @@ void objectmanager_scan_classes(jvm_instance_t* jvm, struct list_head* output){
     }
 }
 void objectmanager_scan_object(jvm_instance_t* jvm, objectmanager_object_t* object, struct list_head* output){
+    if(object->gc_visited)
+        return;
+    else object->gc_visited = true; 
+
     switch(object->type){
         case EJOMOT_CLASS:{
             objectmanager_class_object_t* cobject = objectmanager_get_class_object_info(object);
@@ -137,14 +118,9 @@ void objectmanager_scan_object(jvm_instance_t* jvm, objectmanager_object_t* obje
                     jvm_value_t value = cobject->fields[cur->generation][i].value;
                     if(value.type == EJVT_REFERENCE){
                         objectmanager_object_t* object = *(void**)value.value;
-                        if(object && !is_object_in_used_list(object,output)){
-                            objectmanager_gc_capsule_t* object_capsule = arena_alloc(jvm->heap.heap_arena,sizeof(*object_capsule));
-                            assert(object_capsule);
-
-                            INIT_LIST_HEAD(&object_capsule->list);
-                            object_capsule->object = object;
-
-                            list_add(&object_capsule->list,output);
+                        if(object){
+                            list_del_init(&object->list);
+                            list_add(&object->list,output);
                             objectmanager_scan_object(jvm,object,output);                            
                         }
                     }
@@ -160,16 +136,11 @@ void objectmanager_scan_object(jvm_instance_t* jvm, objectmanager_object_t* obje
                 jvm_value_t value = aobject->elements[i];
                 if(value.type == EJVT_REFERENCE){
                     objectmanager_object_t* object = *(void**)value.value;
-                    if(object && !is_object_in_used_list(object,output)){
-                        objectmanager_gc_capsule_t* object_capsule = arena_alloc(jvm->heap.heap_arena,sizeof(*object_capsule));
-                        assert(object_capsule);
-
-                        INIT_LIST_HEAD(&object_capsule->list);
-                        object_capsule->object = object;
-
-                        list_add(&object_capsule->list,output);
-                        objectmanager_scan_object(jvm,object,output);                          
-                    }
+                        if(object){
+                            list_del_init(&object->list);
+                            list_add(&object->list,output);
+                            objectmanager_scan_object(jvm,object,output);                            
+                        }
                 }
             }
         }
@@ -184,15 +155,10 @@ void objectmanager_scan_frame(jvm_frame_t* start, struct list_head* output){
             jvm_value_t value = cur->locals[i];
             if(value.type == EJVT_REFERENCE){
                 objectmanager_object_t* object = *(void**)value.value;
-                if(object && !is_object_in_used_list(object,output)){
-                    objectmanager_gc_capsule_t* object_capsule = arena_alloc(start->jvm->heap.heap_arena,sizeof(*object_capsule));
-                    assert(object_capsule);
-
-                    INIT_LIST_HEAD(&object_capsule->list);
-                    object_capsule->object = object;
-
-                    list_add(&object_capsule->list,output);
-                    objectmanager_scan_object(cur->jvm,object,output);
+                if(object){
+                    list_del_init(&object->list);
+                    list_add(&object->list,output);
+                    objectmanager_scan_object(cur->jvm,object,output);                            
                 }
             }
         }
@@ -202,32 +168,20 @@ void objectmanager_scan_frame(jvm_frame_t* start, struct list_head* output){
             jvm_value_t value = cur->stack.stack[i];
             if(value.type == EJVT_REFERENCE){
                 objectmanager_object_t* object = *(void**)value.value;
-                if(object && !is_object_in_used_list(object,output)){
-                    objectmanager_gc_capsule_t* object_capsule = arena_alloc(start->jvm->heap.heap_arena,sizeof(*object_capsule));
-                    assert(object_capsule);
-
-                    INIT_LIST_HEAD(&object_capsule->list);
-                    object_capsule->object = object;
-
-                    list_add(&object_capsule->list,output);
-                    objectmanager_scan_object(cur->jvm,object,output);
-                }                
+                    if(object){
+                        list_del_init(&object->list);
+                        list_add(&object->list,output);
+                        objectmanager_scan_object(cur->jvm,object,output);                            
+                    }               
             }
         }
 
         //Step 3: scan exceptions for native methods
         jvm_native_exception_t* exception = NULL;
         list_for_each_entry(exception,&cur->native_exceptions,list){
-            if(!is_object_in_used_list(exception->exception_object,output)){
-                objectmanager_gc_capsule_t* object_capsule = arena_alloc(start->jvm->heap.heap_arena,sizeof(*object_capsule));
-                assert(object_capsule);
-
-                INIT_LIST_HEAD(&object_capsule->list);
-                object_capsule->object = exception->exception_object;
-
-                list_add(&object_capsule->list,output);
-                objectmanager_scan_object(cur->jvm,exception->exception_object,output);
-            }            
+            list_del_init(&exception->exception_object->list);
+            list_add(&exception->exception_object->list,output);
+            objectmanager_scan_object(cur->jvm,exception->exception_object,output);           
         }
     }
 }
@@ -249,7 +203,7 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
 
     jvm_thread_t* current_thread = NULL;
     list_for_each_entry(current_thread,&jvm->threads, list){
-        if(current_thread->JThread){ //Main thread in my jvm is not a thread at all
+        if(current_thread->JThread && current_thread->JThread != jvm_current_thread->JThread){ //Main thread in my jvm is not a thread at all + try to not stop gc itself)
 
             //Call function to freeze thread (implemented via java because it is OS dependant. Know how to implement it on Windows and FreeRTOS but not on posix)
             jvm_frame_t freeze_frame = {
@@ -265,13 +219,9 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
             
 
             //Add it to used list and scan what it contains
-            objectmanager_gc_capsule_t* object_capsule = arena_alloc(jvm->heap.heap_arena,sizeof(*object_capsule));
-            assert(object_capsule);
 
-            INIT_LIST_HEAD(&object_capsule->list);
-            object_capsule->object = current_thread->JThread;
-
-            list_add(&object_capsule->list,&used_objects_list);
+            list_del_init(&current_thread->list); //Remove from main object list and add to used list
+            list_add(&current_thread->list,&used_objects_list);
             objectmanager_scan_object(jvm,current_thread->JThread,&used_objects_list);
         }
 
@@ -280,18 +230,16 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
     }
 
     size_t used_memory_ammount = 0;
-    objectmanager_gc_capsule_t* early_oom_count_cur = NULL;
-    list_for_each_entry(early_oom_count_cur, &used_objects_list, list){
-        used_memory_ammount += early_oom_count_cur->object->size;
+    objectmanager_object_t* early_oom_counter_cur = NULL;
+    list_for_each_entry(early_oom_counter_cur, &used_objects_list, list){
+        used_memory_ammount += early_oom_counter_cur->size;
     }
 
     if(jvm->heap.gc_heapsize - used_memory_ammount < required_memory){ //Not enough memory. Can give up already
-        objectmanager_gc_capsule_t* gc_capsule_destroy = NULL;
-        objectmanager_gc_capsule_t* gc_capsule_destroy_tmp = NULL;
-
-        list_for_each_entry(gc_capsule_destroy,&used_objects_list,list){
-            list_del(&gc_capsule_destroy->list);
-            arena_free_block(gc_capsule_destroy);
+        objectmanager_object_t* cur_object = NULL;
+        list_for_each_entry(cur_object,&used_objects_list,list){
+            list_del_init(&cur_object->list);
+            list_add(&cur_object->list,&jvm->heap.object_list); //return them to main heap object list
         }
 
         printf("%s: Early OOM, cannot find enough memory for allocation!\n",__PRETTY_FUNCTION__);
@@ -306,57 +254,45 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
 
     objectmanager_object_t* finalize_cur = NULL;
     list_for_each_entry(finalize_cur,&jvm->heap.object_list,list){
-        if(!is_object_in_used_list(finalize_cur, &used_objects_list)){
-            classlinker_method_t* finalize_method = objectmanager_class_object_get_method(&(jvm_frame_t){jvm}, objectmanager_get_class_object_info(finalize_cur), "finalize", "()V");
-            if(finalize_method){
-                jvm_value_t args[] = {{EJVT_REFERENCE}};
-                *(void**)args[0].value = finalize_cur;
+        classlinker_method_t* finalize_method = objectmanager_class_object_get_method(&(jvm_frame_t){jvm}, objectmanager_get_class_object_info(finalize_cur), "finalize", "()V");
+        if(finalize_method){
+            jvm_value_t args[] = {{EJVT_REFERENCE}};
+            *(void**)args[0].value = finalize_cur;
                 
                 
-                jvm_value_t stack[finalize_method->frame_descriptor.stack_size]; //I love using stack memory so much!
-                jvm_frame_t finalize_frame = {
-                    .jvm = jvm,
-                    .method = finalize_method,
-                    .previous_frame = &(jvm_frame_t){
-                        .method = &(classlinker_method_t){
-                            .name = "GC_exception_catcher_stub",
-                            .flags = ACC_NATIVE,
-                        },
-                        .jvm = jvm,
+            jvm_value_t stack[finalize_method->frame_descriptor.stack_size]; //I love using stack memory so much!
+            jvm_frame_t finalize_frame = {
+                .jvm = jvm,
+                .method = finalize_method,
+                .previous_frame = &(jvm_frame_t){
+                    .method = &(classlinker_method_t){
+                        .name = "GC_exception_catcher_stub",
+                        .flags = ACC_NATIVE,
                     },
-                    .native_exceptions = LIST_HEAD_INIT(finalize_frame.native_exceptions),
-                    .locals = (jvm_value_t[]){},
-                    .stack.stack = stack,
-                };
-                INIT_LIST_HEAD(&finalize_frame.previous_frame->native_exceptions);
+                    .jvm = jvm,
+                },
+                .native_exceptions = LIST_HEAD_INIT(finalize_frame.native_exceptions),
+                .locals = (jvm_value_t[]){},
+                .stack.stack = stack,
+            };
+            INIT_LIST_HEAD(&finalize_frame.previous_frame->native_exceptions);
 
-                finalize_method->fn(&finalize_frame);
-
-                //while(jvm_native_catch_exception(finalize_frame.previous_frame)) {;};
-            }
+            finalize_method->fn(&finalize_frame);
         }
     }
 
-    objectmanager_gc_capsule_t* gc_capsule = NULL;
-    objectmanager_gc_capsule_t* gc_capsule_tmp = NULL;
-
-    list_for_each_entry_safe(gc_capsule,gc_capsule_tmp,&used_objects_list,list){
-        objectmanager_object_t* object = gc_capsule->object;
-        objectmanager_object_t* new_object = malloc(object->size);
-
+    objectmanager_object_t* used_object = NULL; //Copy used objects
+    list_for_each_entry(used_object,&used_objects_list,list){
+        objectmanager_object_t* new_object = malloc(used_object->size);
         assert(new_object);
 
-        objectmanager_object_clone_into(object, &copied_objects_list, new_object);
-
-
-        //hashmap_insert(&pointer_fix_table,object,new_object,NULL);
-        hashmap_insert(&reverse_pointer_fix_table,new_object,object,NULL);
-
-        list_del(&gc_capsule->list);
-        arena_free_block(gc_capsule);
+        objectmanager_object_clone_into(used_object, &copied_objects_list, new_object);
+        hashmap_insert(&reverse_pointer_fix_table,new_object,used_object,NULL);
     }
     INIT_LIST_HEAD(&jvm->heap.object_list);
-    arena_reset_zero(jvm->heap.gc_heap);
+    arena_reset_zero(jvm->heap.gc_heap); //Now reset heap to 0
+
+
 
     objectmanager_object_t* copy_to_put = NULL;
     objectmanager_object_t* copy_to_put_tmp = NULL;
@@ -371,16 +307,18 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
         hashmap_insert(&pointer_fix_table,old_object,new_object,NULL);
         hashmap_insert(&reverse_pointer_fix_table,new_object,old_object,NULL);
 
+        new_object->gc_visited = false; //reset mark
+
         list_del(&copy_to_put->list);
         free(copy_to_put);
     }
 
     list_for_each_entry(current_thread, &jvm->threads, list){
         for(jvm_frame_t* cur = current_thread->topmost_frame; cur; cur = cur->previous_frame){
-            //Step 1: patch local varibles
+            //Step 1: patch local variables
             for(unsigned i = 0; i < cur->method->frame_descriptor.locals_count; i++){
                 jvm_value_t* value = &cur->locals[i];
-                if(value->type == EJVT_REFERENCE && *(void**)value->value != NULL){
+                if(value->type == EJVT_REFERENCE && *(void**)value->value){
                     void* patch_value = hashmap_get(&pointer_fix_table,*(void**)value->value);
                     assert(patch_value);
 
@@ -418,11 +356,13 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
                     classlinker_normalclass_t* class_info = cur->info;
                     for(unsigned i = 0; i < class_info->fields_count; i++){
                         jvm_value_t* value = &class_object->fields[cur->generation][i].value;
+
                         if(value->type == EJVT_REFERENCE && *(void**)value->value){
                             void* patch_value = hashmap_get(&pointer_fix_table,*(void**)value->value);
                             assert(patch_value);
 
                             *(void**)value->value = patch_value;
+                            
                         }
                     }
                 }
@@ -437,7 +377,7 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
                         void* patch_value = hashmap_get(&pointer_fix_table,*(void**)value->value);
                         assert(patch_value);
 
-                        *(void**)value->value = patch_value;                        
+                        *(void**)value->value = patch_value;
                     }
                 }
             }
@@ -455,7 +395,7 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
                 void* patch_value = hashmap_get(&pointer_fix_table,*(void**)value->value);
                 assert(patch_value);
 
-                *(void**)value->value = patch_value;                       
+                *(void**)value->value = patch_value;
             }
         }
     }

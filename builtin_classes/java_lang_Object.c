@@ -33,7 +33,8 @@ static jvm_error_t object_equals(jvm_frame_t* frame){
         .value = {0},
     };
 
-    *(uint32_t*)frame->previous_frame->stack.stack[frame->previous_frame->stack.sp++].value = self == compare_to;
+    *(uint32_t*)return_value.value = self == compare_to;
+    frame->previous_frame->stack.stack[frame->previous_frame->stack.sp++] = return_value;
 
     return JVM_OK;
 }

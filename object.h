@@ -12,10 +12,12 @@ typedef enum{
 
 typedef struct objectmanager_object_t{
     struct list_head list;
+
     objectmanager_object_type_t type;
-    
     size_t size;
     void* data;
+
+    bool gc_visited;
 }objectmanager_object_t;
 
 typedef struct{

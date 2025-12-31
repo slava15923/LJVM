@@ -40,7 +40,7 @@ jvm_error_t objectmanager_init_heap(jvm_instance_t* jvm, uint32_t heap_size){
     return JVM_OK;
 }
 
-void objectmanager_object_clone_into(objectmanager_object_t* object,struct list_head* object_list, void* memory){
+void objectmanager_object_clone_into(objectmanager_object_t* object, struct list_head* object_list, void* memory){
     assert(memory);
 
     memcpy(memory,object,object->size);
@@ -99,6 +99,17 @@ void objectmanager_scan_classes(jvm_instance_t* jvm, struct list_head* output){
                         list_add(&object->list,output);
                         objectmanager_scan_object(jvm,object,output);                                
                     }
+                }
+            }
+
+            for(unsigned i = 0; i < class_info->constant_pool.constants_count; i++){
+                classlinker_constant_t* constant = &class_info->constant_pool.constants[i];
+                if(constant->constant_type == EJCT_string){
+                    objectmanager_object_t* string = constant->constant_value;
+
+                    list_del_init(&string->list);
+                    list_add(&string->list,output);
+                    objectmanager_scan_object(jvm,string,output);
                 }
             }
         }
@@ -203,7 +214,7 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
 
     jvm_thread_t* current_thread = NULL;
     list_for_each_entry(current_thread,&jvm->threads, list){
-        if(current_thread->JThread && current_thread->JThread != jvm_current_thread->JThread){ //Main thread in my jvm is not a thread at all + try to not stop gc itself)
+        if(current_thread->JThread && current_thread->JThread != jvm_current_thread->JThread){ //Main thread in my jvm is not a thread at all + try to not stop gc itself on some implementations)
 
             //Call function to freeze thread (implemented via java because it is OS dependant. Know how to implement it on Windows and FreeRTOS but not on posix)
             jvm_frame_t freeze_frame = {
@@ -398,10 +409,36 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
                 *(void**)value->value = patch_value;
             }
         }
+
+        for(unsigned i = 0; i < class_info->constant_pool.constants_count; i++){
+            classlinker_constant_t* constant = &class_info->constant_pool.constants[i];
+            if(constant->constant_type == EJCT_string){ //Patch strings, because they may also be moved
+                constant->constant_value = hashmap_get(&pointer_fix_table,constant->constant_value);
+                assert(constant->constant_value);
+            }
+        }
     }
 
     hashmap_cleanup(&pointer_fix_table);
     hashmap_cleanup(&reverse_pointer_fix_table);
+
+    list_for_each_entry(current_thread,&jvm->threads, list){
+        if(current_thread->JThread && current_thread->JThread != jvm_current_thread->JThread){ //Main thread in my jvm is not a thread at all + try to not stop gc itself on some implementations)
+
+            //Call function to unfreeze thread (implemented via java because it is OS dependant. Know how to implement it on Windows and FreeRTOS but not on posix)
+            jvm_frame_t unfreeze_frame = {
+                .jvm = jvm,
+                .locals = (jvm_value_t[1]){},
+            };
+            INIT_LIST_HEAD(&unfreeze_frame.native_exceptions);
+
+            classlinker_method_t* unfreeze_method = objectmanager_class_object_get_method(&unfreeze_frame,objectmanager_get_class_object_info(current_thread->JThread),
+                                                                             "os_unfreeze", "()V");
+            unfreeze_frame.method = unfreeze_method;
+            unfreeze_method->fn(&unfreeze_frame);
+
+        }
+    }
 
     jvm_unlock(jvm);
 }

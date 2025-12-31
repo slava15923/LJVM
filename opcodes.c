@@ -58,8 +58,14 @@ jvm_error_t jvm_ldc_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_
             new_value.type = EJVT_REFERENCE;
             *(void**)new_value.value = constant->constant_value;
             break;
-        case EJCT_unitialised_string:{ //String fuckery because i cant initialise them in linker properly............
-                objectmanager_object_t* string = objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker,"java/lang/String"));
+        case EJCT_unitialised_string:{ //String fuckery because i cant initialise them in linker properly............ Even more string fuckery because of GC....
+                jvm_lock(frame->jvm); //Cannot be done fully lockless
+                    char* native_string = constant->constant_value;
+                    constant->constant_type = EJCT_string;
+                    constant->constant_value = objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker,"java/lang/String"));
+                jvm_unlock(frame->jvm);
+
+                objectmanager_object_t* string = constant->constant_value;
                 FAIL_SET_JUMP(string,err,JVM_OOM,exit);
 
                 classlinker_method_t* init_method = objectmanager_class_object_get_method(frame,objectmanager_get_class_object_info(string),"<init>","(*)V");
@@ -67,7 +73,7 @@ jvm_error_t jvm_ldc_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_
 
                 jvm_value_t args[2] = {{EJVT_REFERENCE},{EJVT_NATIVEPTR}};
                 *(void**)args[0].value = string;
-                *(void**)args[1].value = constant->constant_value;
+                *(void**)args[1].value = native_string;
 
                 jvm_error_t init_error = jvm_invoke(frame->jvm,frame,init_method,2,args);
                 FAIL_SET_JUMP(init_error == JVM_OK,err,init_error,exit);

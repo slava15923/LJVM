@@ -519,6 +519,7 @@ static jvm_error_t VENUMER_hasMoreElements(jvm_frame_t* frame){
     return JVM_OK;
 }
 
+// Made by me
 static jvm_error_t VENUMER_nextElement(jvm_frame_t* frame){
     jvm_error_t err = JVM_OK;
 
@@ -600,6 +601,8 @@ static jvm_error_t vector_elements(jvm_frame_t* frame){
 exit:
     return err;
 }
+
+//=========================================
 
 classlinker_normalclass_t vector_enumerator_info = {
     .fields_count = 2,

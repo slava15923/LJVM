@@ -259,6 +259,7 @@ jvm_error_t jvm_dcmp_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinke
 jvm_error_t jvm_fcmp_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]);
 jvm_error_t jvm_ifi_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]);
 jvm_error_t jvm_ifnull_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]);
+jvm_error_t jvm_ifacmp_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]);
 
 jvm_error_t jvm_neg_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]);
 

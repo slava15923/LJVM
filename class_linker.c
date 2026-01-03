@@ -1,8 +1,8 @@
 #include "class_linker.h"
 #include "arena.h"
 #include "class_loader.h"
-#include "jvm_internal.h"
 #include "jvm.h"
+#include "jvm_internal.h"
 #include "lb_endian.h"
 #include "list.h"
 #include <pthread.h>
@@ -338,6 +338,11 @@ classlinker_error_t classlinker_link(classlinker_instance_t* linker, classloader
         if(linkable_class->parent){
             char* parent_name = linkable_class->parent->this_name;
             linkable_class->parent = classlinker_find_class(linker, parent_name);
+        }
+
+        for(unsigned i = 0; i < linkable_class->implements_count; i++){
+            char* implements_name = linkable_class->implements[i]->this_name;
+            linkable_class->implements[i] = classlinker_find_class(linker, implements_name);
         }
     }
 

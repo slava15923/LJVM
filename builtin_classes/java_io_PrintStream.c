@@ -209,7 +209,14 @@ static jvm_error_t printstream_printstring(jvm_frame_t* frame){
 
     objectmanager_object_t* string = *(void**)frame->locals[1].value;
 
-    objectmanager_object_t* byte_array_object = *(void**)objectmanager_class_object_get_field(frame,objectmanager_get_class_object_info(string), "UTF8_string")->value.value;
+    classlinker_method_t* getBytes = objectmanager_class_object_get_method(frame, objectmanager_get_class_object_info(string), "getBytes", "()[B");
+    FAIL_SET_JUMP(getBytes,err,JVM_NOTFOUND,exit);
+
+    jvm_value_t args[1];
+    C_TO_JVM_VALUE(args[0],string);
+    jvm_invoke(frame->jvm,frame,getBytes,1,args);
+
+    objectmanager_object_t* byte_array_object = JVM_TO_C_VALUE(jvm_native_get_return(frame),objectmanager_object_t*);
     FAIL_SET_JUMP(byte_array_object,err,JVM_OPCODE_INVALID,exit);
 
     err = printstream_common(frame,byte_array_object);
@@ -351,6 +358,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
             .raw_description = "(Ljava/lang/String;)V",
             .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
+            .frame_descriptor.stack_size = 1,
             .fn = printstream_printstring,
             .flags = ACC_NATIVE,
         },
@@ -432,6 +440,7 @@ classlinker_normalclass_t java_io_PrintStream_info = {
             .raw_description = "(Ljava/lang/String;)V",
             .frame_descriptor.locals_count = 1,
             .frame_descriptor.arguments_count = 1,
+            .frame_descriptor.stack_size = 1,
             .fn = printstream_println,
             .flags = ACC_NATIVE,
         },

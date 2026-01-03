@@ -3,6 +3,8 @@
 #include "list.h"
 #include "os_support.h"
 
+#include "jvm_method.h"
+
 typedef enum{
     EJVT_BYTE = 'B',
     EJVT_CHAR = 'C',
@@ -72,3 +74,42 @@ typedef struct jvm_instance_t{
     struct list_head threads;
 }jvm_instance_t;
 
+
+//NOTE ABOUT LJNI: Allocations done by native function and doesnt stored in classes, objects, frame locals, frame stack are invisible to GC, and it will treat them as unused!
+//So if you need to allocate something from native function, please store it to local variable immeadiatly after you allocate. like this: C_TO_JVM_VALUE(frame->locals[N],objectmanager_new_*_object)!!!!
+jvm_error_t jvm_invoke(jvm_instance_t* instance, jvm_frame_t* previous_frame, classlinker_method_t* callable_method, unsigned nargs, jvm_value_t args[]);
+                        //Invokes function, bytecode or native, from passed method with passed arguments. Pass 'this' as args[0]!
+
+jvm_error_t jvm_invokestatic(jvm_instance_t* instance, jvm_frame_t* previous_frame, classlinker_method_t* callable_method, unsigned nargs, jvm_value_t args[]);
+                        //Same but check that this function is static
+
+jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* expection_object); //Throw exception object to previous java or native function
+
+objectmanager_object_t* jvm_native_catch_exception(jvm_frame_t* frame); //Catches exceptions in native function. Warning: if you call something that might throw
+                                                                        //And you dont want to catch, you MUST re-throw thoose exceptions
+
+void jvm_native_return(jvm_frame_t* frame, jvm_value_t value); //Use this function to return value from LJNI to java function or other native function. Or to get value from stack
+
+jvm_value_t jvm_native_get_return(jvm_frame_t* frame); //Gets function return value or any value from stack
+
+#define C_TO_JVM_TYPE(x) _Generic((x), \
+    int8_t: EJVT_BYTE, \
+    uint8_t: EJVT_BYTE, \
+    char: EJVT_CHAR, \
+    int16_t: EJVT_SHORT, \
+    uint16_t: EJVT_CHAR, \
+    int32_t: EJVT_INT, \
+    uint32_t: EJVT_INT, \
+    int64_t: EJVT_LONG, \
+    uint64_t: EJVT_LONG, \
+    float: EJVT_FLOAT, \
+    double: EJVT_DOUBLE, \
+    bool: EJVT_BOOL, \
+    objectmanager_object_t*: EJVT_REFERENCE, \
+    void*: EJVT_NATIVEPTR, \
+    default: EJVT_NATIVEPTR)
+
+
+#define C_TO_JVM_VALUE(jvm_value,C_value) {(jvm_value).type = C_TO_JVM_TYPE((C_value)); *(typeof(C_value)*)(jvm_value).value = (C_value);} //Macro to convert C to jvm_value_t
+#define JVM_TO_C_VALUE(jvm_value,type) *(type*)(jvm_value).value //Macro to convert jvm_value_t to native value, require type. For example to get EJVT_INT you pass uint32_t,
+                                                                 //For EJVT_REFERENCE: objectmanager_object_t* and likewise for other types

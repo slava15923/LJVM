@@ -443,11 +443,6 @@ void objectmanager_gc(jvm_instance_t* jvm, unsigned required_memory){
     jvm_unlock(jvm);
 }
 
-void objectmanager_wakeup_gc(jvm_instance_t* jvm, unsigned required_memory){
-    //Currenly just call GC, freeRTOS and windows should wakeup GC thread, give him JVM, and call objectmanager_gc()
-    objectmanager_gc(jvm,required_memory);
-}
-
 objectmanager_object_t* objectmanager_new_class_object(jvm_frame_t* frame,
                                                        classlinker_class_t* class){
     if(!class) return NULL;
@@ -464,7 +459,7 @@ objectmanager_object_t* objectmanager_new_class_object(jvm_frame_t* frame,
     void* memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
     if(memory == NULL){
         jvm_unlock(frame->jvm);
-        objectmanager_wakeup_gc(frame->jvm,alloc_size);
+        objectmanager_gc(frame->jvm,alloc_size);
 
         jvm_lock(frame->jvm);
         memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
@@ -513,7 +508,7 @@ objectmanager_object_t* objectmanager_new_array_object(jvm_frame_t* frame, jvm_v
     void* memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
     if(memory == NULL){
         jvm_unlock(frame->jvm);
-        objectmanager_wakeup_gc(frame->jvm,alloc_size);
+        objectmanager_gc(frame->jvm,alloc_size);
         
         jvm_lock(frame->jvm);
         memory = arena_calloc(frame->jvm->heap.gc_heap,1,alloc_size);
@@ -544,6 +539,8 @@ exit:
 }
 
 objectmanager_class_object_t* objectmanager_get_class_object_info(objectmanager_object_t* object){
+    if(!object) return NULL;
+
     if(object->type == EJOMOT_CLASS){
         return object->data;
     }
@@ -552,6 +549,8 @@ objectmanager_class_object_t* objectmanager_get_class_object_info(objectmanager_
 }
 
 objectmanager_array_object_t* objectmanager_get_array_object_info(objectmanager_object_t* object){
+    if(!object) return NULL;
+
     if(object->type == EJOMOT_ARRAY){
         return object->data;
     }
@@ -560,6 +559,8 @@ objectmanager_array_object_t* objectmanager_get_array_object_info(objectmanager_
 
 classlinker_field_t* objectmanager_class_object_get_field(jvm_frame_t* frame, objectmanager_class_object_t* class_object,
                                                           char* name){
+    if(!frame || !name || !class_object) return NULL;
+
     for(classlinker_class_t* cur = class_object->class; cur; cur = cur->parent){
         classlinker_normalclass_t* class_info = cur->info;
         for(unsigned i = 0; i < class_info->fields_count; i++){            
@@ -578,7 +579,7 @@ classlinker_field_t* objectmanager_class_object_get_field(jvm_frame_t* frame, ob
 
 classlinker_method_t* objectmanager_class_object_get_method(jvm_frame_t* frame, objectmanager_class_object_t* object,
                                                             char* name, char* description){
-
+    if(!object || !name) return NULL;
     return classlinker_find_method(frame, object->class,name,description);
 }
 
@@ -613,6 +614,7 @@ static uint32_t h31_hash(const char* s, size_t len)
 }
 uint32_t objectmanager_hash(objectmanager_object_t* object){
     uint32_t hash = 0;
+    if(!object) return 0;
 
     switch(object->type){
         case EJOMOT_CLASS:{

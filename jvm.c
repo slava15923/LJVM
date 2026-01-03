@@ -221,6 +221,9 @@ static jvm_opcode_executor_t opcode_executors[211] = {
     [OP_IFnull] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifnull_opcodes},
     [OP_IFnonnull] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifnull_opcodes},
 
+    [OP_IFACMPq] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifacmp_opcodes},
+    [OP_IFACMPe] = {1,(jvm_opcode_argtype_t[]){EJOT_U16},jvm_ifacmp_opcodes},
+
     [OP_INEG] = {0,NULL,jvm_neg_opcodes},
     [OP_LNEG] = {0,NULL,jvm_neg_opcodes},
     [OP_FNEG] = {0,NULL,jvm_neg_opcodes},
@@ -465,6 +468,15 @@ objectmanager_object_t* jvm_native_catch_exception(jvm_frame_t* frame){ //Native
     }
 
     return NULL;
+}
+
+void jvm_native_return(jvm_frame_t* frame, jvm_value_t value){
+    assert(frame->previous_frame);
+    frame->previous_frame->stack.stack[frame->previous_frame->stack.sp++] = value;
+}
+
+jvm_value_t jvm_native_get_return(jvm_frame_t* frame){
+    return frame->stack.stack[--frame->stack.sp];
 }
 
 jvm_error_t jvm_launch_class(jvm_instance_t* instance, char* class, int nargs, char** args){

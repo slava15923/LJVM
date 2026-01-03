@@ -331,6 +331,36 @@ jvm_error_t jvm_ifnull_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlin
     return err;
 }
 
+jvm_error_t jvm_ifacmp_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
+    jvm_error_t err = JVM_OK;
+
+    int32_t offset = -3 + *(uint16_t*)args[0]; //Magic value to skip frame->pc properly. Same as goto
+
+    void* value2 = *(void**)frame->stack.stack[--frame->stack.sp].value;
+    void* value1 = *(void**)frame->stack.stack[--frame->stack.sp].value;
+
+    bool do_branch = false;
+    switch(opcode){
+        case OP_IFACMPq:
+            if(value1 == value2)
+                do_branch = true;
+            break;
+        
+        case OP_IFACMPe:
+            if(value1 != value2)
+                do_branch = true;
+            break;
+
+        default: break;
+    }
+
+    if(do_branch)
+        frame->pc += offset;
+    
+
+    return err;
+}
+
 jvm_error_t jvm_ifi_opcodes(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]){
     jvm_error_t err = JVM_OK;
 
@@ -1206,8 +1236,26 @@ jvm_error_t jvm_anewarray_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classl
     uint8_t jvm_array_type = *(uint8_t*)args[0];
 
     jvm_value_t count = frame->stack.stack[--frame->stack.sp];
+    FAIL_SET_JUMP(*(int32_t*)count.value >= 0, err,({
+        jvm_error_t errs = JVM_OK;
+        jvm_lock(frame->jvm);
+        objectmanager_object_t* exception = objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/NegativeArraySizeException"));
+        objectmanager_class_object_t* ecobject = objectmanager_get_class_object_info(exception);
+        if(!exception){
+            errs = JVM_OOM;
+            jvm_unlock(frame->jvm);
+        } else {
+            jvm_value_t init_args[1] = {0};
+            C_TO_JVM_VALUE(init_args[0],exception);
 
-    FAIL_SET_JUMP(*(int32_t*)count.value >= 0, err, jvm_throw(frame,objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/NegativeArraySizeException"))),exit);
+            errs = jvm_invoke(frame->jvm,frame,objectmanager_class_object_get_method(frame,ecobject,"<init>", "()V"),1,init_args);
+            if(errs == JVM_OK){
+                jvm_unlock(frame->jvm);
+                errs = jvm_throw(frame,exception);
+            } else jvm_unlock(frame->jvm);
+        }
+        (errs);
+    }),exit);
 
     jvm_value_t array = {EJVT_REFERENCE};
 
@@ -1240,7 +1288,26 @@ jvm_error_t jvm_arrayload_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classl
     FAIL_SET_JUMP(array_obj->type == EJOMOT_ARRAY,err,JVM_OPPARAM_INVALID,exit);
 
     objectmanager_array_object_t* array = objectmanager_get_array_object_info(array_obj);
-    FAIL_SET_JUMP(index < array->count,err,jvm_throw(frame,objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/ArrayIndexOutOfBoundsException"))),exit);
+    FAIL_SET_JUMP(index < array->count, err,({
+        jvm_error_t errs = JVM_OK;
+        jvm_lock(frame->jvm);
+        objectmanager_object_t* exception = objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/ArrayIndexOutOfBoundsException"));
+        objectmanager_class_object_t* ecobject = objectmanager_get_class_object_info(exception);
+        if(!exception){
+            errs = JVM_OOM;
+            jvm_unlock(frame->jvm);
+        } else {
+            jvm_value_t init_args[1] = {0};
+            C_TO_JVM_VALUE(init_args[0],exception);
+
+            errs = jvm_invoke(frame->jvm,frame,objectmanager_class_object_get_method(frame,ecobject,"<init>", "()V"),1,init_args);
+            if(errs == JVM_OK){
+                jvm_unlock(frame->jvm);
+                errs = jvm_throw(frame,exception);
+            } else jvm_unlock(frame->jvm);
+        }
+        (errs);
+    }),exit);
 
     frame->stack.stack[frame->stack.sp++] = array->elements[index];
 
@@ -1259,7 +1326,26 @@ jvm_error_t jvm_arraystore_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, class
     FAIL_SET_JUMP(array_obj->type == EJOMOT_ARRAY,err,JVM_OPPARAM_INVALID,exit);
 
     objectmanager_array_object_t* array = objectmanager_get_array_object_info(array_obj);
-    FAIL_SET_JUMP(index < array->count,err,jvm_throw(frame,objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/ArrayIndexOutOfBoundsException"))),exit);
+    FAIL_SET_JUMP(index < array->count, err,({
+        jvm_error_t errs = JVM_OK;
+        jvm_lock(frame->jvm);
+        objectmanager_object_t* exception = objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/ArrayIndexOutOfBoundsException"));
+        objectmanager_class_object_t* ecobject = objectmanager_get_class_object_info(exception);
+        if(!exception){
+            errs = JVM_OOM;
+            jvm_unlock(frame->jvm);
+        } else {
+            jvm_value_t init_args[1] = {0};
+            C_TO_JVM_VALUE(init_args[0],exception);
+
+            errs = jvm_invoke(frame->jvm,frame,objectmanager_class_object_get_method(frame,ecobject,"<init>", "()V"),1,init_args);
+            if(errs == JVM_OK){
+                jvm_unlock(frame->jvm);
+                errs = jvm_throw(frame,exception);
+            } else jvm_unlock(frame->jvm);
+        }
+        (errs);
+    }),exit);
 
     array->elements[index] = to_store;
 
@@ -1387,9 +1473,26 @@ jvm_error_t jvm_checkcast_opcode(jvm_opcode_t opcode, jvm_frame_t* frame, classl
     objectmanager_object_t* object = *(void**)frame->stack.stack[frame->stack.sp - 1].value;
     classlinker_class_t* class = ((classlinker_normalclass_t*)frame->method->class->info)->constant_pool.constants[(*(uint16_t*)args[0]) - 1].constant_value;
 
-    if(object == NULL || !objectmanager_class_object_is_compatible_to(objectmanager_get_class_object_info(object),class)){
-        err = jvm_throw(frame,objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/ClassCastException")));
-    }
+    FAIL_SET_JUMP(object && objectmanager_class_object_is_compatible_to(objectmanager_get_class_object_info(object),class), err,({
+        jvm_error_t errs = JVM_OK;
+        jvm_lock(frame->jvm);
+        objectmanager_object_t* exception = objectmanager_new_class_object(frame,classlinker_find_class(frame->jvm->linker, "java/lang/ClassCastException"));
+        objectmanager_class_object_t* ecobject = objectmanager_get_class_object_info(exception);
+        if(!exception){
+            errs = JVM_OOM;
+            jvm_unlock(frame->jvm);
+        } else {
+            jvm_value_t init_args[1] = {0};
+            C_TO_JVM_VALUE(init_args[0],exception);
+
+            errs = jvm_invoke(frame->jvm,frame,objectmanager_class_object_get_method(frame,ecobject,"<init>", "()V"),1,init_args);
+            if(errs == JVM_OK){
+                jvm_unlock(frame->jvm);
+                errs = jvm_throw(frame,exception);
+            } else jvm_unlock(frame->jvm);
+        }
+        (errs);
+    }),exit);
 
 exit:
     return err;

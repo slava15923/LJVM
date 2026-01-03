@@ -19,17 +19,11 @@ typedef struct{
 
     jvm_error_t (*opcode_fn)(jvm_opcode_t opcode, jvm_frame_t* frame, classlinker_class_t* cur_class, unsigned nargs, void* args[]);
 }jvm_opcode_executor_t;
-
 extern __thread jvm_thread_t* jvm_current_thread;
 
 void jvm_lock(jvm_instance_t* jvm);
 void jvm_unlock(jvm_instance_t* jvm);
 
 jvm_error_t jvm_bytecode_executor(jvm_frame_t* frame);
-
-jvm_error_t jvm_invoke(jvm_instance_t* instance, jvm_frame_t* previous_frame, classlinker_method_t* callable_method, unsigned nargs, jvm_value_t args[]);
-jvm_error_t jvm_invokestatic(jvm_instance_t* instance, jvm_frame_t* previous_frame, classlinker_method_t* callable_method, unsigned nargs, jvm_value_t args[]);
-jvm_error_t jvm_throw(jvm_frame_t* frame, objectmanager_object_t* expection_object);
-objectmanager_object_t* jvm_native_catch_exception(jvm_frame_t* frame);
                             
 
